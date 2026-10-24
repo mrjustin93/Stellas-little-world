@@ -14,3 +14,7 @@ Passed locally in Chromium through Playwright:
 Inspected desktop and mobile cuddle screenshots. These are simulated browser checks, not physical Galaxy S26 tests.
 
 Run `npm test`, then optionally start a local HTTP server and run `GAME_URL=http://127.0.0.1:8765/ node qa/refinement.cjs`. The optional browser runner needs Playwright and Chromium; the game itself has no dependencies.
+
+## Publication status
+
+Publishing was attempted through both the GitHub connector (create update branch) and the authenticated GitHub CLI (push update branch). Both returned HTTP 403 permission errors. No remote files were modified; v0.2 is not deployed. GitHub's repository metadata reported push permission, but actual write requests were rejected. A working write-enabled connection is required before publication.
