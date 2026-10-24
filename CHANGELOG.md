@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.7 — Proportions and a gentler stride
+
+- Reduced Stella’s displayed height from about 76 to 62 world units to suit the 95-unit bed and room furniture. Activity props and fallback artwork use the same scale. Reduced sitting Luna and enlarged the exterior cabin while preserving its entrance and walkable paths.
+- Replaced lower-leg strip distortion with clipped hip/knee and shoulder/elbow articulation. Added alternating stance/swing, knee lift, arm counter-swing, torso sway, and smooth animation settling.
+- Walk/jog speeds and stride lengths now produce distinct, gentler cadences tied to travelled distance. Releasing controls still stops position immediately.
+- Added a saved Cozy/Wide view option inside Map.
+
 ## 0.6 — A more defined Stella
 
 - Generated a detailed 3D-style character turnaround using the first original concept as direct reference: blonde pixie, blue eyes, soft adult face, pink hoodie/shorts, white camisole and pink sneakers.

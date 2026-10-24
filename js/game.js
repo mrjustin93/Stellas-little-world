@@ -8,10 +8,11 @@ import {WorldClock} from './clock.js';
 import {overlaps,feet} from './collision.js';
 import {newInventory,loadProgress,saveProgress} from './progress.js';
 import {drawMap} from './map.js';
+import {SCALE} from './gait.js';
 export class Game {
  constructor(){
   this.cabin=createCabin();this.cabin.id='cabin';this.garden=createGarden();this.scene=this.cabin;
-  this.clock=new WorldClock();this.player=new Player();this.inventory=newInventory();this.running=false;
+  this.clock=new WorldClock();this.player=new Player();this.inventory=newInventory();this.running=false;this.wideView=false;
   this.interactions=new Interactions();this.started=false;this.saveTimer=0;this.last=0;this.time=0;this.flowerCooldown=0;
   try{this.resumed=loadProgress(this,localStorage);}catch{this.resumed=false;}
   this.renderer=new Renderer(document.querySelector('#game'));
@@ -19,10 +20,11 @@ export class Game {
   this.input=new Input(()=>{if(!this.started)return;this.interact();this.input.reset();},()=>{this.closeOverlays();this.input.reset();});
   document.querySelector('#start').textContent=this.resumed?'Welcome back →':'Step inside →';
   document.querySelector('#start').onclick=()=>{this.started=true;document.querySelector('#welcome').hidden=true;this.closeOverlays();this.input.reset();this.save();};
-  document.querySelector('#help').onclick=()=>{this.closeOverlays();this.input.reset();this.interactions.activate({message:'Drag the joystick or use WASD / arrows. Use the Garden mat to go outside. Bag shows your seeds, berries, flowers and watering can; Map shows the larger world. Open the gate to plant and water strawberries. They ripen after one game day and never die. The basket beside the cabin has free seeds. Tap Walk to jog. The clock can pause time. Progress saves on this browser every five seconds and after actions; keep browser data to keep your farm.'});};
+  document.querySelector('#help').onclick=()=>{this.closeOverlays();this.input.reset();this.interactions.activate({message:'Drag the joystick or use WASD / arrows. Use the Garden mat to go outside. Bag shows your seeds, berries, flowers and watering can; Map shows the larger world. Open the gate to plant and water strawberries. They ripen after one game day and never die. The basket beside the cabin has free seeds. Tap Walk to jog. In Map, use View to choose a cozy or wider camera. The clock can pause time. Progress saves on this browser every five seconds and after actions; keep browser data to keep your farm.'});};
   document.querySelector('#bag').onclick=()=>this.showBag();
   document.querySelector('#map-button').onclick=()=>{this.interactions.close();this.input.reset();this.mapPanel.hidden=!this.mapPanel.hidden;if(!this.mapPanel.hidden)drawMap(document.querySelector('#map-canvas'),this);};
   document.querySelector('#close-map').onclick=()=>{this.mapPanel.hidden=true;this.input.reset();};
+  document.querySelector('#view-toggle').onclick=()=>{this.wideView=!this.wideView;this.save();};
   document.querySelector('#pace').onclick=()=>{this.running=!this.running;this.save();};
   document.querySelector('#world-clock').onclick=()=>{this.clock.paused=!this.clock.paused;this.save();};
   document.querySelector('#journal').addEventListener('click',()=>{this.mapPanel.hidden=true;this.input.reset();});
@@ -52,14 +54,16 @@ export class Game {
  frame(now){
   const dt=this.last?Math.min((now-this.last)/1000,.05):0;this.last=now;this.time+=dt;
   const blocked=this.interactions.open||!this.mapPanel.hidden||document.hidden;
-  this.player.speed=this.running?99:66;
-  if(this.started&&!blocked){this.player.update(dt,this.input.axis(),this.scene);this.clock.update(dt);}else this.player.stop();
+  this.renderer.zoom=this.wideView?.85:1;
+  const view=document.querySelector('#view-toggle');view.textContent=this.wideView?'View: Wide':'View: Cozy';view.setAttribute('aria-pressed',String(this.wideView));
+  this.player.speed=this.running?SCALE.jogSpeed:SCALE.walkSpeed;
+  if(this.started&&!blocked){this.player.update(dt,this.input.axis(),this.scene);this.clock.update(dt);}else this.player.stop(dt);
   updateGarden(this.garden,this.clock);
   if(this.started){this.saveTimer+=dt;if(this.saveTimer>=5){this.saveTimer=0;this.save();}}
   const clockButton=document.querySelector('#world-clock');clockButton.textContent=this.clock.label+(this.clock.paused?' · paused':'');clockButton.setAttribute('aria-pressed',String(this.clock.paused));
   const pace=document.querySelector('#pace');pace.textContent=this.running?'Jog':'Walk';pace.setAttribute('aria-pressed',String(this.running));
   const region=this.scene.id==='cabin'?'HOME':this.player.x>570?(this.player.y>390?'PICNIC CLEARING':'FLOWER MEADOW'):this.player.x>470?'PINE TRAIL':'GARDEN';
-  document.querySelector('.location small').textContent=region+' · V0.6';
+  document.querySelector('.location small').textContent=region+' · V0.7';
   this.interactions.update(dt);const near=this.started&&!blocked?nearest(this.player,this.scene.objects):null;
   document.querySelector('#hint').textContent=near?`♡ ${near.type==='plot'||near.id==='gate'?near.message:near.id==='door'?'Explore the garden':near.id==='home'?'Go inside':near.id==='luna'?'Say hello to Luna':near.id==='seeds'?'Free strawberry seeds':near.id==='flowers'?'Pick a meadow flower':'Enjoy a little moment'}`:'';
   document.querySelector('#interact').classList.toggle('near',!!near);document.querySelector('#activity').textContent=near?'A little moment awaits':'Make yourself at home';
