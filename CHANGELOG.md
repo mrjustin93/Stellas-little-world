@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.4 — A smoother Stella
+
+- Added a real transparent sprite atlas: 16 directions, 12 distinct walking frames per direction, idle and blink (224 frames total), with editable vector source and frame metadata.
+- Refined the face, blue almond eyes, softer tapered jaw, smile and swept pixie hair toward the first reference.
+- Added proportional analogue movement, gentle acceleration, eased turning, immediate release-to-stop, and walking phase based on actual distance travelled. Walking stops when blocked.
+- Preserved household activity poses and a smooth vector fallback if the atlas fails to load.
+
 ## 0.3 — A little garden
 
 - Replaced pixel rendering with resolution-independent cartoon artwork, rounded silhouettes, soft shading and shadows. Stella retains the reference’s blonde pixie hair, blue eyes, pink outfit and heart pendant. Luna retains brown fur and a pink bow.

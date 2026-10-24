@@ -1,6 +1,7 @@
 import {Art} from './art.js';
+import {StellaAtlas} from './stella.js';
 export class Renderer {
- constructor(canvas){this.canvas=canvas;this.g=canvas.getContext('2d');this.a=new Art(this.g);this.motion=matchMedia('(prefers-reduced-motion: reduce)');new ResizeObserver(()=>this.resize()).observe(canvas);this.resize();}
+ constructor(canvas){this.canvas=canvas;this.g=canvas.getContext('2d');this.a=new Art(this.g);this.stella=new StellaAtlas();this.motion=matchMedia('(prefers-reduced-motion: reduce)');new ResizeObserver(()=>this.resize()).observe(canvas);this.resize();}
  resize(){const r=this.canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);this.canvas.width=Math.round(r.width*d);this.canvas.height=Math.round(r.height*d);}
  room(scene){const a=this.a,g=this.g;const outside=scene.id==='garden';
  a.round(0,0,480,scene.height,outside?a.gradient(0,0,400,'#b6ce95','#7da77e'):'#425e50',0);
@@ -40,7 +41,7 @@ export class Renderer {
  }
  render(scene,p,interactions,near,t,clock){const g=this.g,a=this.a,c=this.canvas;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,c.width,c.height);g.fillStyle='#344f43';g.fillRect(0,0,c.width,c.height);
  const ratio=c.width/c.height,vw=ratio<1.2?Math.max(245,scene.height*ratio):480,vh=scene.height;const scale=Math.min(c.width/vw,c.height/vh),sx=Math.max(0,Math.min(480-vw,p.x-vw/2));g.save();g.translate((c.width-vw*scale)/2-sx*scale,(c.height-vh*scale)/2);g.scale(scale,scale);this.room(scene);
- const time=this.motion.matches?0:t,list=scene.objects.filter(o=>!(o.id==='luna'&&interactions.pose==='hug')).map(o=>({depth:o.depth,draw:()=>this.object(o,time)}));list.push({depth:p.y,draw:()=>a.stella(p,interactions.pose,time)});list.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
+ const time=this.motion.matches?0:t,list=scene.objects.filter(o=>!(o.id==='luna'&&interactions.pose==='hug')).map(o=>({depth:o.depth,draw:()=>this.object(o,time)}));list.push({depth:p.y,draw:()=>this.stella.draw(a,p,interactions.pose,time)});list.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
  if(clock.darkness){g.fillStyle=`rgba(27,42,85,${clock.darkness*(scene.id==='garden'?1:.55)})`;g.fillRect(0,0,480,scene.height);if(scene.id!=='garden'){const glow=g.createRadialGradient(268,100,1,268,100,90);glow.addColorStop(0,'#ffc56c50');glow.addColorStop(1,'#ffc56c00');g.fillStyle=glow;g.fillRect(175,20,185,180);}}
  if(near&&!interactions.open){a.oval(near.x+near.w/2,near.y-24,8,8,'#fff5e8e8');g.fillStyle='#ae6b8c';g.textAlign='center';g.font='12px Georgia';g.fillText('♡',near.x+near.w/2,near.y-20);}
  for(const h of interactions.hearts){g.globalAlpha=Math.min(1,h.life);g.fillStyle='#f0a4c1';g.font='13px Georgia';g.fillText('♥',h.x,h.y);}g.globalAlpha=1;g.restore();
