@@ -1,7 +1,7 @@
 // Sixteen rendered key views, aligned using inspected silhouette bounds.
 // Thirty-two facing steps blend the key views; gait is animated at runtime.
 import {StellaAtlas} from './stella.js';
-import {SCALE,gaitPose} from './gait.js';
+import {SCALE,gaitPose,isJogging} from './gait.js';
 export class RenderedStella {
  constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
@@ -16,7 +16,7 @@ export class RenderedStella {
  draw(a,p,pose,t){
   if(!this.ready){a.g.save();a.g.translate(p.x,p.y);a.g.scale(62/64,62/64);this.fallback.draw(a,{...p,x:0,y:0},pose,t);a.g.restore();return;}
   const g=a.g,angle=pose?0:p.facing??0,index=(Math.round(angle/(Math.PI/16))%32+32)%32,im=this.views[index];
-  const blend=pose?0:p.motion??(p.walking?1:0),jog=p.speed>70,cycle=gaitPose(p.gait,blend,jog),side=Math.sin(angle),front=Math.cos(angle);
+  const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),cycle=gaitPose(p.gait,blend,jog),side=Math.sin(angle),front=Math.cos(angle);
   const sourceWidth=this.metadata.frames[Math.floor(index/2)].w/this.metadata.frames[Math.floor(index/2)].h*304;
   const cutL=80-sourceWidth*.235,cutR=80+sourceWidth*.235;
   a.shadow(p.x,p.y,9,2.8);g.save();g.translate(p.x,p.y);g.scale(SCALE.character,SCALE.character);g.translate(-80,-312);
