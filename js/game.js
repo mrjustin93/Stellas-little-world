@@ -34,7 +34,7 @@ export class Game {
     if(o.id==='door'||o.id==='home'){
       this.scene=o.id==='door'?this.garden:this.cabin;
       this.player.x=o.id==='door'?223:83;this.player.y=o.id==='door'?153:289;
-      this.player.direction='down';this.interactions.close();return;
+      this.player.direction='down';this.player.facing=0;this.player.stop();this.interactions.close();return;
     }
     if(o.id==='gate'){
       if(o.open&&overlaps(feet(this.player.x,this.player.y),{x:o.x,y:o.y,w:o.w,h:o.h})){
@@ -49,10 +49,10 @@ export class Game {
     const dt=this.last?Math.min((now-this.last)/1000,.05):0;
     this.last=now;this.time+=dt;
     if(this.started&&!this.interactions.open)this.player.update(dt,this.input.axis(),this.scene);
-    else this.player.walking=false;
+    else this.player.stop();
     if(this.started&&!this.interactions.open)this.clock.update(dt);
     const clockButton=document.querySelector("#world-clock");clockButton.textContent=this.clock.label+(this.clock.paused?" · paused":"");clockButton.setAttribute("aria-pressed",String(this.clock.paused));
-    document.querySelector(".location small").textContent=(this.scene.id==="garden"?"GARDEN":"HOME")+" · V0.3";
+    document.querySelector(".location small").textContent=(this.scene.id==="garden"?"GARDEN":"HOME")+" · V0.4";
     this.interactions.update(dt);
     const near=this.started?nearest(this.player,this.scene.objects):null;
     document.querySelector('#hint').textContent=near&&!this.interactions.open?`♡ ${near.type==='plot'||near.id==='gate'?near.message:near.id==='door'?'Explore the garden':near.id==='home'?'Go inside':near.id==='luna'?'Say hello to Luna':'Enjoy a little moment'}`:'';

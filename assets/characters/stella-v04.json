@@ -1,0 +1,12 @@
+{
+  "columns": 14,
+  "rows": 16,
+  "cellWidth": 120,
+  "cellHeight": 216,
+  "scale": 3,
+  "anchorX": 20,
+  "anchorY": 68,
+  "walkFrames": 12,
+  "directions": "Rows run clockwise from down in 22.5 degree increments.",
+  "frames": "Columns 0–11 walk; 12 idle; 13 blink."
+}
