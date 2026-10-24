@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.5 — A farm to come home to
+
+- Expanded the outdoor world to 840×680, almost three times its former area, with a pine trail, flower meadow and picnic clearing. Camera follows on both axes; terrain is cached and off-screen objects are culled.
+- Added a backpack with seeds, strawberries, flowers and a reusable watering can; free seed refills beside the cabin.
+- Watered crops ripen after one game day, yield three berries and one seed, and never die. Time pauses in menus; no offline penalties.
+- Added a world map and Walk/Jog toggle.
+- Save location, clock, pause, gate, crops, inventory and jogging preference automatically on this browser/device. Invalid saves and unavailable storage are handled safely.
+
 ## 0.4 — A smoother Stella
 
 - Added a real transparent sprite atlas: 16 directions, 12 distinct walking frames per direction, idle and blink (224 frames total), with editable vector source and frame metadata.
