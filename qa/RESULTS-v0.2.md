@@ -17,4 +17,4 @@ Run `npm test`, then optionally start a local HTTP server and run `GAME_URL=http
 
 ## Publication status
 
-Publishing was attempted through both the GitHub connector (create update branch) and the authenticated GitHub CLI (push update branch). Both returned HTTP 403 permission errors. No remote files were modified; v0.2 is not deployed. GitHub's repository metadata reported push permission, but actual write requests were rejected. A working write-enabled connection is required before publication.
+Initial publication attempts returned HTTP 403 because the connector had not been installed for the account. After the owner installed the GitHub App, an authenticated push of the complete v0.2 update branch succeeded. Deployment is verified separately after merging into main.
