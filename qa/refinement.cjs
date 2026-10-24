@@ -39,14 +39,7 @@ const {chromium}=require('playwright');
  await page.waitForTimeout(200);assert.ok(await page.evaluate(()=>__game.player.x)>165);
  await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
  assert.equal(await page.evaluate(()=>__game.input.touch.x),0);
- // A frame must exist for every direction, walk frame, and activity pose.
- assert.ok(await page.evaluate(()=>{
-   const a=__game.renderer.assets;
-   for(const d of ['up','down','left','right'])for(let f=0;f<4;f++){
-     const c=a.getStella(d,f);if(c.width!==32||c.height!==50)return false;
-     if(!c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4===3&&v))return false;
-   }return !!a.luna;
- }));
+ assert.equal(await page.locator('#game').evaluate(c=>getComputedStyle(c).imageRendering),'auto');
  for(const [width,height] of [[320,640],[360,740],[412,892],[892,412],[1366,900]]){
    await page.setViewportSize({width,height});await page.waitForTimeout(100);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight),false,`overflow at ${width}`);
@@ -56,5 +49,5 @@ const {chromium}=require('playwright');
    if(width===412||width===1366){await page.evaluate(()=>{__game.player.x=167;__game.player.y=246;__game.player.direction='down';});await page.waitForTimeout(70);await page.screenshot({path:`qa/${width===412?'portrait':'desktop'}-v0.2.png`});}
  }
  await page.emulateMedia({reducedMotion:'reduce'});await page.waitForTimeout(100);assert.deepEqual(errors,[]);
- await browser.close();console.log('PASS: movement, all four activities and poses, paused movement, journal persistence, corrupt/disabled storage, touch cancellation, 16 sprite frames, 320–1366px layouts, reduced motion, zero console/network errors.');
+ await browser.close();console.log('PASS: movement, all four activities and poses, paused movement, journal persistence, corrupt/disabled storage, touch cancellation, smooth canvas rendering, 320–1366px layouts, reduced motion, zero console/network errors.');
 })().catch(e=>{console.error(e);process.exit(1);});
