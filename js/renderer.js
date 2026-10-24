@@ -1,7 +1,7 @@
 import {Art} from './art.js';
-import {StellaAtlas} from './stella.js';
+import {RenderedStella} from './stella-rendered.js';
 export class Renderer {
- constructor(canvas){this.canvas=canvas;this.g=canvas.getContext('2d');this.a=new Art(this.g);this.stella=new StellaAtlas();this.motion=matchMedia('(prefers-reduced-motion: reduce)');new ResizeObserver(()=>this.resize()).observe(canvas);this.resize();}
+ constructor(canvas){this.canvas=canvas;this.g=canvas.getContext('2d');this.a=new Art(this.g);this.stella=new RenderedStella();this.motion=matchMedia('(prefers-reduced-motion: reduce)');new ResizeObserver(()=>this.resize()).observe(canvas);this.resize();}
  resize(){const r=this.canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);this.canvas.width=Math.round(r.width*d);this.canvas.height=Math.round(r.height*d);}
  room(scene){if(scene.id==='garden'){if(!this.land){this.land=document.createElement('canvas');this.land.width=scene.width;this.land.height=scene.height;const g=this.g,a=this.a;this.g=this.land.getContext('2d');this.a=new Art(this.g);this.drawRoom(scene);this.g=g;this.a=a;}this.g.drawImage(this.land,0,0);return;}this.drawRoom(scene);}
  drawRoom(scene){const a=this.a,g=this.g;const outside=scene.id==='garden';
@@ -50,6 +50,6 @@ export class Renderer {
  const time=this.motion.matches?0:t,list=scene.objects.filter(o=>o.x+o.w>sx-80&&o.x<sx+vw+80&&o.y+o.h>sy-80&&o.y<sy+vh+100&&!(o.id==='luna'&&interactions.pose==='hug')).map(o=>({depth:o.depth,draw:()=>this.object(o,time)}));list.push({depth:p.y,draw:()=>this.stella.draw(a,p,interactions.pose,time)});list.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
  if(clock.darkness){g.fillStyle=`rgba(27,42,85,${clock.darkness*(scene.id==='garden'?1:.55)})`;g.fillRect(0,0,scene.width,scene.height);if(scene.id!=='garden'){const glow=g.createRadialGradient(268,100,1,268,100,90);glow.addColorStop(0,'#ffc56c50');glow.addColorStop(1,'#ffc56c00');g.fillStyle=glow;g.fillRect(175,20,185,180);}}
  if(near&&!interactions.open){a.oval(near.x+near.w/2,near.y-24,8,8,'#fff5e8e8');g.fillStyle='#ae6b8c';g.textAlign='center';g.font='12px Georgia';g.fillText('♡',near.x+near.w/2,near.y-20);}
- for(const h of interactions.hearts){g.globalAlpha=Math.min(1,h.life);g.fillStyle='#f0a4c1';g.font='13px Georgia';g.fillText('♥',h.x,h.y);}g.globalAlpha=1;g.restore();
+ for(const h of interactions.hearts){g.globalAlpha=Math.min(1,h.life);g.fillStyle='#f0a4c1';g.font='13px Georgia';g.fillText('♥',h.x,h.y);}g.globalAlpha=1;g.restore();if(interactions.open)this.stella.portrait(document.querySelector("#stella-portrait"));
  }
 }

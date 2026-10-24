@@ -1,5 +1,11 @@
 # Stella’s Little World
 
+## 0.6 — A more defined Stella
+
+- Generated a detailed 3D-style character turnaround using the first original concept as direct reference: blonde pixie, blue eyes, soft adult face, pink hoodie/shorts, white camisole and pink sneakers.
+- Aligned 16 rendered views and added 32 blended facing steps with procedural gait. Stella is more prominent on screen; collision size stays consistent.
+- Added a close-up dialogue portrait and preserved activity props, saves, and the previous sprite atlas as a missing-asset fallback.
+
 ## 0.5 — A farm to come home to
 
 - Expanded the outdoor world to 840×680, almost three times its former area, with a pine trail, flower meadow and picnic clearing. Camera follows on both axes; terrain is cached and off-screen objects are culled.
