@@ -1,5 +1,5 @@
 import {move} from './collision.js';
-export const FACINGS=16;
+export const FACINGS=32;
 export function angleDelta(a,b){return Math.atan2(Math.sin(b-a),Math.cos(b-a));}
 export class Player {
  constructor(){this.x=167;this.y=246;this.direction='down';this.facing=0;this.targetFacing=0;this.walking=false;this.time=0;this.gait=0;this.speed=66;this.vx=0;this.vy=0;}
