@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {WorldClock} from '../js/clock.js';import {createGarden,toggleGate,tendPlot} from '../js/garden.js';import {move} from '../js/collision.js';
+test('clock has equal day/night halves, wraps midnight, and pauses',()=>{const c=new WorldClock();c.hour=6;assert.equal(c.night,false);c.hour=18;assert.equal(c.night,true);c.hour=23.99;c.update(1);assert.equal(c.day,2);assert.ok(c.hour<1);c.paused=true;const h=c.hour;c.update(100);assert.equal(c.hour,h);});
+test('closed fence/gate and pond block feet; opening creates a passage',()=>{const s=createGarden(),p={x:170,y:350},gate=s.objects.find(o=>o.id==='gate');move(p,0,-35,s);assert.ok(p.y>=339);toggleGate(gate);move(p,0,-35,s);assert.ok(p.y<330);p.x=320;p.y=250;move(p,90,0,s);assert.ok(p.x<=332);p.x=100;p.y=350;move(p,0,-40,s);assert.ok(p.y>=339);});
+test('plots cycle seed, water, harvest and reset',()=>{const plot=createGarden().objects.find(o=>o.type==='plot');for(const expected of [1,2,0]){assert.ok(tendPlot(plot).length>0);assert.equal(plot.stage,expected);}});

@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.3 — A little garden
+
+- Replaced pixel rendering with resolution-independent cartoon artwork, rounded silhouettes, soft shading and shadows. Stella retains the reference’s blonde pixie hair, blue eyes, pink outfit and heart pendant. Luna retains brown fur and a pink bow.
+- Added an outdoor cabin scene, fenced garden with an operable gate, six strawberry beds and a small blue pond. Use the Garden mat inside the cabin to travel outside; interact with the front doorstep to return.
+- Interact with a garden bed to plant, water, then harvest. This is a gentle instant activity cycle; growth timers and inventory are not implemented. Garden state lasts for the current session.
+- Added a 24-hour clock with daylight 06:00–18:00, night 18:00–06:00 and gradual lighting transitions. A full day takes ten real minutes. Tap the clock to pause it. Time pauses while reading dialogue and starts fresh when the page reloads.
+- Preserved indoor activities, journal persistence, touch controls and collision. Art remains Canvas 2D, with a shaded cartoon depth effect.
+
 ## 0.2 — Little moments
 
 - Redrew original Stella sprites at 32×50 pixels with tousled blonde hair, blue eyes, hoodie folds, shorts, socks, and lace-up shoes. Four directions and four walk frames keep consistent proportions.
