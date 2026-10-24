@@ -1,7 +1,7 @@
 const solid=(id,type,x,y,w,h,message)=>({id,type,x,y,w,h,depth:y+h,message,solid:{x,y,w,h}});
 export function createGarden(){
  const objects=[
-  solid('cabin','house',150,40,140,90),
+  solid('cabin','house',130,12,188,118),
   {id:'home',type:'entry',x:210,y:131,w:26,h:10,depth:142,message:'Come inside',travel:'cabin'},
   solid('fence-top','fence',60,180,220,5),solid('fence-left','fence',60,180,5,150),solid('fence-right','fence',275,180,5,150),
   solid('fence-bottom-l','fence',60,330,85,5),solid('fence-bottom-r','fence',195,330,85,5),

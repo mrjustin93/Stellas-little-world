@@ -1,12 +1,13 @@
 import {move} from './collision.js';
+import {SCALE} from './gait.js';
 export const FACINGS=32;
 export function angleDelta(a,b){return Math.atan2(Math.sin(b-a),Math.cos(b-a));}
 export class Player {
- constructor(){this.x=167;this.y=246;this.direction='down';this.facing=0;this.targetFacing=0;this.walking=false;this.time=0;this.gait=0;this.speed=66;this.vx=0;this.vy=0;}
- stop(){this.vx=0;this.vy=0;this.walking=false;this.time=0;}
+ constructor(){this.x=167;this.y=246;this.direction='down';this.facing=0;this.targetFacing=0;this.walking=false;this.time=0;this.gait=0;this.motion=0;this.speed=SCALE.walkSpeed;this.vx=0;this.vy=0;}
+ stop(dt=1/60){this.motion*=Math.exp(-18*dt);if(this.motion<.001)this.motion=0;this.vx=0;this.vy=0;this.walking=false;this.time=0;}
  update(dt,axis,scene){
   const length=Math.hypot(axis.x,axis.y);
-  if(length<.09){this.stop();return;}
+  if(length<.09){this.stop(dt);return;}
   const amount=Math.min(1,(length-.09)/.91),nx=axis.x/length,ny=axis.y/length;
   this.targetFacing=Math.atan2(nx,ny);
   const names=['down','down-right','right','up-right','up','up-left','left','down-left'];
@@ -19,6 +20,6 @@ export class Player {
   const x=this.x,y=this.y;move(this,dx,dy,scene);
   const travelled=Math.hypot(this.x-x,this.y-y);
   this.walking=travelled>.0001;
-  if(this.walking){this.gait+=travelled/22;this.time+=dt;}else{this.vx=0;this.vy=0;this.time=0;}
+  if(this.walking){this.gait+=travelled/(this.speed>70?SCALE.jogStride:SCALE.walkStride);this.motion+=(1-this.motion)*(1-Math.exp(-18*dt));this.time+=dt;}else{this.motion*=Math.exp(-18*dt);this.vx=0;this.vy=0;this.time=0;}
  }
 }
