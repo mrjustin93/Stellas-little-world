@@ -1,0 +1,1 @@
+After updating the release version in package.json, run `python3 scripts/version-assets.py` before browser checks and publication. This versions the stylesheet, entry script, and the complete JavaScript module graph through an import map so mobile browsers do not combine new pages with previously cached movement code.

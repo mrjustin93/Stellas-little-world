@@ -2,6 +2,8 @@
 
 ## 0.7.2 — Brisk farm movement
 
+- Versioned the complete module graph, entry script and stylesheet so a phone receives the new control code immediately after an update.
+
 - Increased default movement from 80 to 140 world units/second and jogging from 120 to 190. Shortened acceleration further.
 - Added a stronger near-center joystick response, with full pace after about 11px on the standard pad and a small neutral zone to prevent drift.
 - Adjusted distance-based strides for the faster pace.
