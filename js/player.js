@@ -13,7 +13,7 @@ export class Player {
   const names=['down','down-right','right','up-right','up','up-left','left','down-left'];
   this.direction=names[(Math.round(this.targetFacing/(Math.PI/4))+8)%8];
   this.facing+=angleDelta(this.facing,this.targetFacing)*(1-Math.exp(-24*dt));
-  const tx=nx*this.speed*amount,ty=ny*this.speed*amount,k=40,e=Math.exp(-k*dt);
+  const tx=nx*this.speed*amount,ty=ny*this.speed*amount,k=60,e=Math.exp(-k*dt);
   // Integrate acceleration analytically so distance is independent of frame rate.
   const dx=tx*dt+(this.vx-tx)*(1-e)/k,dy=ty*dt+(this.vy-ty)*(1-e)/k;
   this.vx=tx+(this.vx-tx)*e;this.vy=ty+(this.vy-ty)*e;

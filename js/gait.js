@@ -1,6 +1,6 @@
 // Shared world scale and distance-based animation. A bed is ~95 units long;
 // Stella is ~62 units tall, so furniture no longer looks miniature beside her.
-export const SCALE={character:62/304,walkSpeed:80,jogSpeed:120,walkStride:56,jogStride:66};
+export const SCALE={character:62/304,walkSpeed:140,jogSpeed:190,walkStride:90,jogStride:104};
 export function legCycle(phase){
  const q=((phase%1)+1)%1;
  // 62% stance: the planted foot travels backward as the body moves forward.

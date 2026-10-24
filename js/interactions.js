@@ -13,9 +13,9 @@ export function nearest(player, objects) {
 
 export const MOMENTS = {
   luna:{label:'Give Luna a cuddle',title:'A bear-sized hug',pose:'hug',message:'You scoop Luna into a gentle hug. Her little pink bow tickles your chin. Home is wherever you two are. ♡'},
-  counter:{label:'Brew a cup of tea',title:'A warm cup of tea',pose:'tea',message:'Chamomile, a spoonful of honey, and a warm cup between your hands. There’s nowhere else you need to be.'},
+  counter:{label:'Brew a cup of tea',title:'A warm cup of tea',pose:'tea',message:'Stella pours chamomile with a little honey. “Sweet enough? Or should I stay a little closer?” ♡'},
   shelf:{label:'Read a little story',title:'One more page',pose:'read',message:'“Beyond the pines, a little house glowed like a lantern…” You smile and turn another page.'},
-  fire:{label:'Warm your hands',title:'A fireside pause',pose:'warm',message:'You stretch your fingers toward the hearth. The wood crackles softly, and the mountain air feels far away.'},
+  fire:{label:'Warm your hands',title:'A fireside pause',pose:'warm',message:'Stella warms her hands by the hearth. “Cozy, isn’t it? You could stay a little longer…” ♡'},
 };
 const STORAGE_KEY='stella.cozy-moments.v1';
 export class Interactions {
