@@ -1,0 +1,2 @@
+import {move} from './collision.js';
+export class Player{constructor(){this.x=167;this.y=246;this.direction='down';this.walking=false;this.time=0;this.speed=66;}update(dt,axis,scene){const n=Math.hypot(axis.x,axis.y);this.walking=n>0.05;if(this.walking){const x=axis.x/Math.max(1,n),y=axis.y/Math.max(1,n);this.direction=Math.abs(x)>Math.abs(y)?(x>0?'right':'left'):(y>0?'down':'up');move(this,x*this.speed*dt,y*this.speed*dt,scene);this.time+=dt;}else this.time=0;}}
