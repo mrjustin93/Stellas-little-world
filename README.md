@@ -1,1 +1,1 @@
-# Stellas-little-world
+Place the original user-supplied reference here as stella-concept.jpg. The concept was visible in conversation, but its source file was not accessible from the workspace. Do not slice this concept into animation frames; it is an art direction reference.
