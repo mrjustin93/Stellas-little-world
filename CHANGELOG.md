@@ -1,5 +1,11 @@
 # Stella’s Little World
 
+## 0.7.1 — More responsive controls
+
+- Full joystick speed now needs 22% of the pad width of thumb travel, down from 33%. The visual stick still follows the finger.
+- Reduced movement dead zone from 9% to 4% and shortened acceleration time. Small thumb movements engage sooner; release still stops immediately.
+- Walking increased from 54 to 80 world units/second and jogging from 86 to 120. Retuned stride lengths and walk/jog animation selection for the faster pace.
+
 ## 0.7 — Proportions and a gentler stride
 
 - Reduced Stella’s displayed height from about 76 to 62 world units to suit the 95-unit bed and room furniture. Activity props and fallback artwork use the same scale. Reduced sitting Luna and enlarged the exterior cabin while preserving its entrance and walkable paths.
