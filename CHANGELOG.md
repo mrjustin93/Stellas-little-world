@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.7.2 — Brisk farm movement
+
+- Increased default movement from 80 to 140 world units/second and jogging from 120 to 190. Shortened acceleration further.
+- Added a stronger near-center joystick response, with full pace after about 11px on the standard pad and a small neutral zone to prevent drift.
+- Adjusted distance-based strides for the faster pace.
+- Added a few playful, lightly flirty lines around the couch, tea, window and fireplace.
+
 ## 0.7.1 — More responsive controls
 
 - Full joystick speed now needs 22% of the pad width of thumb travel, down from 33%. The visual stick still follows the finger.
