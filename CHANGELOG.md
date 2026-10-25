@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.10 — Smoother foot paths
+
+- Matched forward foot velocity through push-off and landing, removing abrupt changes at the stance/swing boundaries.
+- Softened the foot-clearance curve, lowered swing height, reduced bounce and eased the animation cadence.
+- Small joystick movements use smaller steps. Starting from rest begins near toe-off instead of expanding straight into a full stride.
+- Kept compact shoes, 140/190 movement speeds, joystick sensitivity and saved farm progress.
+
 ## 0.9.1 — Smaller, steadier shoes
 
 - Replaced broad shoe-image crops with compact shaded pink sneakers sized consistently to the ankle and calf.
