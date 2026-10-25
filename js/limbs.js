@@ -16,3 +16,15 @@ export function paintLeg(a,rig,width){
  const sock={x:rig.foot.x+(rig.knee.x-rig.foot.x)*.21,y:rig.foot.y+(rig.knee.y-rig.foot.y)*.21};
  drawLimb(g,sock,rig.foot,width*.57,width*.53,['#fffaf0','#f8f1e5','#d9cbd0']);
 }
+
+export function paintArm(a,rig){
+ const g=a.g,pink=['#f8c5d8','#eaa0c0','#c47e9f'];
+ a.oval(rig.shoulder.x,rig.shoulder.y,10.5,9,a.gradient(rig.shoulder.x-10,rig.shoulder.y-9,21,pink[0],pink[2]));
+ drawLimb(g,rig.shoulder,rig.elbow,21,16,pink);
+ a.oval(rig.elbow.x,rig.elbow.y,7.5,7.5,'#eaa0c0');
+ drawLimb(g,rig.elbow,rig.wrist,16,12,pink);
+ const cuff={x:rig.wrist.x+(rig.elbow.x-rig.wrist.x)*.15,y:rig.wrist.y+(rig.elbow.y-rig.wrist.y)*.15};
+ drawLimb(g,cuff,rig.wrist,13,12,['#fbd3df','#efb3cd','#c98aa8']);
+ drawLimb(g,rig.wrist,rig.hand,9,8,['#ffdfb9','#f2c1a0','#d99b84']);
+ a.oval(rig.hand.x,rig.hand.y,4,4,'#f2c1a0');
+}
