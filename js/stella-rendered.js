@@ -2,7 +2,7 @@
 // Thirty-two facing steps blend the key views; gait is animated at runtime.
 import {StellaAtlas} from './stella.js';
 import {SCALE,gaitPose,isJogging} from './gait.js';
-import {solveLeg,footTarget,nearestFacing} from './locomotion.js';
+import {projectedLeg,nearestFacing} from './locomotion.js';
 export class RenderedStella {
  constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
@@ -22,14 +22,14 @@ export class RenderedStella {
   const cutL=80-sourceWidth*.235,cutR=80+sourceWidth*.235;
   a.shadow(p.x,p.y,9,2.8);g.save();g.translate(p.x,p.y);g.scale(SCALE.character,SCALE.character);g.translate(-80,-312);
   const drawRect=(x,y,w,h)=>g.drawImage(im,x,y,w,h,x,y,w,h);
-  const bob=-cycle.bob/SCALE.character;
+  const bob=(jog?12:8)*blend-cycle.bob/SCALE.character;
   const leg=(half,step)=>{
    const sign=half?1:-1,hipX=80+sign*sourceWidth*.125;
-   const target=footTarget(hipX,step,angle,blend,jog);
-   const rig=solveLeg({x:hipX,y:196+bob},target,Math.abs(side)>.3?-Math.sign(side):sign);
+   const rig=projectedLeg(hipX,step,angle,blend,jog,bob);
    // Draw each bone in its own local transform. No image-strip distortion.
-   g.save();g.translate(rig.hip.x,rig.hip.y);g.rotate(rig.thigh);g.translate(-hipX,-196);drawRect(half*80,194,80,60);g.restore();
-   g.save();g.translate(rig.knee.x,rig.knee.y);g.rotate(rig.shin);g.translate(-hipX,-252);drawRect(half*80,252,80,48);g.restore();
+   g.save();g.translate(rig.hip.x,rig.hip.y);g.rotate(rig.thigh);g.scale(1,rig.thighScale);g.translate(-hipX,-196);
+   const outer=half?Math.min(160,cutR+sourceWidth*.06):Math.max(0,cutL-sourceWidth*.06),lx=half?80:outer,lw=half?outer-80:80-outer;drawRect(lx,194,lw,60);g.restore();
+   g.save();g.translate(rig.knee.x,rig.knee.y);g.rotate(rig.shin);g.scale(1,rig.shinScale);g.translate(-hipX,-252);drawRect(half*80,252,80,48);g.restore();
    const toeRoll=step.lift>0?Math.sin(step.forward*Math.PI)*.13:(step.forward>.65?-.09:step.forward<-.65?.12:0);
    g.save();g.translate(rig.foot.x,rig.foot.y);g.rotate(toeRoll*side*blend);g.translate(-hipX,-300);drawRect(half*80,298,80,22);g.restore();
   };
