@@ -9,3 +9,5 @@ Walking uses subtle procedural lower-leg deformation and body motion tied to tra
 No runtime image generation, external asset service, or framework is required. The render, metadata, and fallback are served as static files.
 
 As of v0.9, the face, outfit and shoes still use the rendered views, while articulated leg surfaces are shaded continuously by js/limbs.js and driven by the joint solver in js/locomotion.js. Heel/toe and support phases live in js/gait.js.
+
+As of v0.9.1, js/shoes.js draws compact shaded sneakers anchored at the ankle instead of cropping the shoe area from the standing turnaround.
