@@ -9,7 +9,7 @@ export function solveLeg(hip,ankle,bend=1,upper=56,lower=48){
 }
 export function footTarget(hipX,step,angle,blend,jog){
  const reach=jog?24:20,side=Math.sin(angle),front=Math.cos(angle);
- return {x:hipX+side*step.forward*reach*blend,y:300+front*step.forward*6*blend-step.lift*(jog?22:16)*blend};
+ return {x:hipX+side*step.forward*reach*blend,y:300+front*step.forward*6*blend-step.lift*(jog?18:12)*blend};
 }
 export function nearestFacing(angle){return ((Math.round(angle/(Math.PI/16))%32)+32)%32;}
 
