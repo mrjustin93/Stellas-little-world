@@ -1,12 +1,13 @@
 // Sixteen rendered key views, aligned using inspected silhouette bounds.
 // Thirty-two facing steps blend the key views; gait is animated at runtime.
 import {StellaAtlas} from './stella.js';
-import {SCALE,gaitPose,isJogging} from './gait.js';
-import {projectedLeg,nearestFacing} from './locomotion.js';
-import {paintLeg} from './limbs.js';
+import {SCALE,isJogging} from './gait.js';
+import {nearestFacing} from './locomotion.js';
+import {walkingRig} from './skeleton.js';
+import {paintLeg,paintArm} from './limbs.js';
 import {paintShoe} from './shoes.js';
 export class RenderedStella {
- constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
+ constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.bodies=[];this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
  }
  prepare(){try{
@@ -14,38 +15,29 @@ export class RenderedStella {
   for(let i=0;i<32;i++){const c=document.createElement('canvas');c.width=160;c.height=320;const g=c.getContext('2d'),left=Math.floor(i/2),right=(left+1)%16;
    g.drawImage(keys[left],0,0);if(i%2){g.globalCompositeOperation='copy';g.globalAlpha=.5;g.drawImage(keys[left],0,0);g.globalCompositeOperation='lighter';g.drawImage(keys[right],0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;}
    this.views.push(c);
+   // Cache a torso/head mask once. Moving sleeves and hands are connected
+   // geometry, so no rectangular strips of the torso swing with the arms.
+   const body=document.createElement('canvas');body.width=160;body.height=320;
+   const bg=body.getContext('2d'),side=Math.sin(i*Math.PI/16),profile=Math.abs(side),center=80+side*7;
+   const points=[[0,0],[160,0],[160,96],[center+33-12*profile,96],[center+30-9*profile,124],[center+28-10*profile,163],[center+36-14*profile,191],[center+33-12*profile,208-7*profile],[center-33+12*profile,208-7*profile],[center-36+14*profile,191],[center-28+10*profile,163],[center-30+9*profile,124],[center-33+12*profile,96],[0,96]];
+   bg.beginPath();points.forEach(([x,y],n)=>n?bg.lineTo(x,y):bg.moveTo(x,y));bg.closePath();bg.clip();bg.drawImage(c,0,0);this.bodies.push(body);
   }this.ready=true;
  }catch{this.ready=false;}}
  draw(a,p,pose,t){
   if(!this.ready){a.g.save();a.g.translate(p.x,p.y);a.g.scale(62/64,62/64);this.fallback.draw(a,{...p,x:0,y:0},pose,t);a.g.restore();return;}
-  const g=a.g,angle=pose?0:p.facing??0,index=nearestFacing(angle),im=this.views[index];
-  const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),cycle=gaitPose(p.gait,blend,jog),side=Math.sin(angle),front=Math.cos(angle);
-  const sourceWidth=this.metadata.frames[Math.floor(index/2)].w/this.metadata.frames[Math.floor(index/2)].h*304;
-  const cutL=80-sourceWidth*.235,cutR=80+sourceWidth*.235;
+  const g=a.g,angle=pose?0:p.facing??0,index=nearestFacing(angle);
+  const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),rig=walkingRig(p.gait,blend,jog,angle);
   a.shadow(p.x,p.y,9,2.8);g.save();g.translate(p.x,p.y);g.scale(SCALE.character,SCALE.character);g.translate(-80,-312);
-  const drawRect=(x,y,w,h)=>g.drawImage(im,x,y,w,h,x,y,w,h);
-  const bob=(jog?12:8)*blend-cycle.bob/SCALE.character;
-  const leg=(half,step)=>{
-   const sign=half?1:-1,hipX=80+sign*sourceWidth*.125;
-   const rig=projectedLeg(hipX,step,angle,blend,jog,bob,cycle.sway/SCALE.character);
-   const grounded=projectedLeg(hipX,{...step,lift:0},angle,blend,jog,bob);
-   a.oval(grounded.foot.x,grounded.foot.y+12,7.5-step.lift*1.5,1.7,step.contact||blend<.05?'#4b42312b':'#4b423113');
-   paintLeg(a,rig,Math.min(25,Math.max(18,sourceWidth*.18)));
-   paintShoe(a,rig.foot,angle,step.roll,blend);
-  };
-  const far=side>=0?0:1;leg(far,far?cycle.right:cycle.left);leg(1-far,far?cycle.left:cycle.right);
-  // Rigid clipped body preserves face detail; arms rotate from shoulders/elbows.
-  g.save();g.translate(80+cycle.sway/SCALE.character,196+bob);g.rotate(side*cycle.lean);g.translate(-80,-196);
-  g.save();g.beginPath();g.rect(0,0,160,196);g.rect(0,100,cutL,96);g.rect(cutR,100,160-cutR,96);g.clip('evenodd');g.drawImage(im,0,0);g.restore();
-  for(const half of [0,1]){
-   const sign=half?1:-1,x=half?cutR:0,w=half?160-cutR:cutL,shoulder=half?cutR-2:cutL+2,elbow=half?cutR+6:cutL-6;
-   const step=half?cycle.right:cycle.left,swing=-step.forward*blend;
-   g.save();g.translate(shoulder,108);g.rotate(side*swing*(jog?.28:.18));g.translate(-shoulder,-108);
-   drawRect(x,100,w,62);
-   g.translate(elbow,160);g.rotate(side*Math.max(0,swing)*(jog?.2:.1));g.translate(-elbow,-160-front*swing*3);
-   drawRect(x,160,w,46);g.restore();
+  for(const leg of rig.legs)a.oval(leg.ground.x,leg.ground.y+11,7.5-leg.step.lift*1.5,1.7,leg.step.contact||blend<.05?'#4b42312b':'#4b423113');
+  for(const leg of [...rig.legs].sort((a,b)=>a.hip.depth-b.hip.depth||a.foot.depth-b.foot.depth)){
+   paintLeg(a,leg,24);paintShoe(a,leg.foot,angle,leg.step.roll,blend);
   }
-  g.restore();g.restore();
+  const arms=[...rig.arms].sort((a,b)=>a.shoulder.depth-b.shoulder.depth);
+  const behind=arm=>arm.shoulder.depth< -6||Math.cos(angle)<-.85;
+  for(const arm of arms)if(behind(arm))paintArm(a,arm);
+  g.drawImage(this.bodies[index],rig.body.x-80,rig.body.y-196);
+  for(const arm of arms)if(!behind(arm))paintArm(a,arm);
+  g.restore();
   // Activity props use the same character scale and foot anchor as locomotion.
   g.save();g.translate(p.x,p.y);g.scale(62/76,62/76);
   if(pose==='hug'){a.bear(0,-23,.65);a.line([[-9,-37],[-6,-26],[-1,-27]],'#efa9c6',3.5);a.line([[9,-37],[6,-26],[1,-27]],'#efa9c6',3.5);}

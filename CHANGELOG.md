@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.11 — Connected walking rig
+
+- Rotate anatomical hips, shoulders and limbs together. Side views now overlap the hips correctly; front and back views show the depth of each step.
+- Use fixed-length thigh/calf joints, a longer recovery step, and a pelvis height derived from ankle reach. The supporting knee straightens as Stella passes over that foot.
+- Replace moving rectangular arm crops with connected shoulders, elbows, cuffs and hands. Relaxed arms counter-swing against the legs, with near/far drawing order around the torso.
+- Cache torso masks while retaining Stella's original rendered face, hair and pink outfit. Preserve compact sneakers, responsive 140/190 movement speeds and saved progress.
+- Add geometry checks over 32,768 walk/jog poses and refresh versioned imports for phone caches.
+
 ## 0.10 — Smoother foot paths
 
 - Matched forward foot velocity through push-off and landing, removing abrupt changes at the stance/swing boundaries.
