@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.9 — Heel-to-toe walking
+
+- Replaced cut-up leg image sections with continuously shaded articulated thighs, knees, calves and socks, retaining the rendered face, outfit and shoes.
+- Added heel contact, flat support, toe push-off and smooth foot recovery. Walking always has a supporting foot; jogging has a short flight phase.
+- Added per-foot contact shadows and a stronger weight shift. Hip sway no longer carries the support ankle sideways.
+- Preserved the 140/190 movement speeds, joystick sensitivity, character scale and saved progress.
+
 ## 0.8.1 — Correct leg projection
 
 - Corrected knee bending: solve in the character’s forward/vertical plane before projecting into the camera view. Front/back legs no longer use sideways knee bends.

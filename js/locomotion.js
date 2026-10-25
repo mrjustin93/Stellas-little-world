@@ -15,10 +15,11 @@ export function nearestFacing(angle){return ((Math.round(angle/(Math.PI/16))%32)
 
 // Solve in the character's forward/vertical plane, then project into the view.
 // A frontal view foreshortens a knee bend; it must not bend the knee sideways.
-export function projectedLeg(hipX,step,angle,blend,jog,hipOffset=0){
+export function projectedLeg(hipX,step,angle,blend,jog,hipOffset=0,lateral=0){
  const raw=solveLeg({x:0,y:196+hipOffset},footTarget(0,step,Math.PI/2,blend,jog),1);
  const side=Math.sin(angle),depth=Math.cos(angle)*.15;
  const project=p=>({x:hipX+p.x*side,y:p.y+p.x*depth});
  const hip=project(raw.hip),knee=project(raw.knee),foot=project(raw.foot);
+ hip.x+=lateral;knee.x+=lateral*.55;
  return {hip,knee,foot,thigh:-Math.atan2(knee.x-hip.x,knee.y-hip.y),shin:-Math.atan2(foot.x-knee.x,foot.y-knee.y),thighScale:Math.hypot(knee.x-hip.x,knee.y-hip.y)/56,shinScale:Math.hypot(foot.x-knee.x,foot.y-knee.y)/48,clamped:Math.hypot(raw.foot.x-footTarget(0,step,Math.PI/2,blend,jog).x,raw.foot.y-footTarget(0,step,Math.PI/2,blend,jog).y)>.02};
 }

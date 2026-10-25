@@ -7,3 +7,5 @@ The inspected silhouette bounds in `stella-rendered-v06.json` align each view to
 Walking uses subtle procedural lower-leg deformation and body motion tied to travelled distance. These are rendered standing key views with procedural gait, not 32 independently authored 3D models or full motion-captured animation. Activity props are composited in front of the rendered character. A dialogue portrait uses the front-view face. The previous v0.4 animated atlas remains the missing-asset fallback.
 
 No runtime image generation, external asset service, or framework is required. The render, metadata, and fallback are served as static files.
+
+As of v0.9, the face, outfit and shoes still use the rendered views, while articulated leg surfaces are shaded continuously by js/limbs.js and driven by the joint solver in js/locomotion.js. Heel/toe and support phases live in js/gait.js.
