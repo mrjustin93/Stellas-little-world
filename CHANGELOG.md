@@ -1,5 +1,11 @@
 # Stella’s Little World
 
+## 0.9.1 — Smaller, steadier shoes
+
+- Replaced broad shoe-image crops with compact shaded pink sneakers sized consistently to the ankle and calf.
+- Limited sole tilt to under three degrees and flattened it at rest, removing the floppy rotation.
+- Reduced foot-contact shadows to match the smaller footwear.
+
 ## 0.9 — Heel-to-toe walking
 
 - Replaced cut-up leg image sections with continuously shaded articulated thighs, knees, calves and socks, retaining the rendered face, outfit and shoes.

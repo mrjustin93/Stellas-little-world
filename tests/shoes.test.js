@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {shoeGeometry} from '../js/shoes.js';import {SCALE,legCycle} from '../js/gait.js';
+test('shoe dimensions remain compact and rotation stays below three degrees',()=>{for(let r=0;r<32;r++)for(let i=0;i<120;i++){const s=shoeGeometry(r*Math.PI/16,legCycle(i/120).roll,1);assert.ok(s.width*SCALE.character<=5.6);assert.ok(Math.abs(s.roll)<Math.PI/60);assert.equal(s.height,17);}});
+test('shoes return flat at rest and mirror without changing size',()=>{assert.equal(shoeGeometry(1,.27,0).roll,0);const a=shoeGeometry(Math.PI/2),b=shoeGeometry(-Math.PI/2);assert.equal(a.width,b.width);assert.equal(a.mirror,-b.mirror);});

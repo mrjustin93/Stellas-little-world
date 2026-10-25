@@ -4,6 +4,7 @@ import {StellaAtlas} from './stella.js';
 import {SCALE,gaitPose,isJogging} from './gait.js';
 import {projectedLeg,nearestFacing} from './locomotion.js';
 import {paintLeg} from './limbs.js';
+import {paintShoe} from './shoes.js';
 export class RenderedStella {
  constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
@@ -28,9 +29,9 @@ export class RenderedStella {
    const sign=half?1:-1,hipX=80+sign*sourceWidth*.125;
    const rig=projectedLeg(hipX,step,angle,blend,jog,bob,cycle.sway/SCALE.character);
    const grounded=projectedLeg(hipX,{...step,lift:0},angle,blend,jog,bob);
-   a.oval(grounded.foot.x,grounded.foot.y+12,9-step.lift*2,2,step.contact||blend<.05?'#4b42312b':'#4b423113');
+   a.oval(grounded.foot.x,grounded.foot.y+12,7.5-step.lift*1.5,1.7,step.contact||blend<.05?'#4b42312b':'#4b423113');
    paintLeg(a,rig,Math.min(25,Math.max(18,sourceWidth*.18)));
-   g.save();g.translate(rig.foot.x,rig.foot.y);g.rotate(step.roll*side*blend);g.translate(-hipX,-300);drawRect(half*80,280,80,40);g.restore();
+   paintShoe(a,rig.foot,angle,step.roll,blend);
   };
   const far=side>=0?0:1;leg(far,far?cycle.right:cycle.left);leg(1-far,far?cycle.left:cycle.right);
   // Rigid clipped body preserves face detail; arms rotate from shoulders/elbows.
