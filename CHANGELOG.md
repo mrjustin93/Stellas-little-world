@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.8 — A clearer walking cycle
+
+- Added explicit foot targets and a two-bone knee/ankle solver so limbs keep consistent lengths through support and swing. Added separate toe roll and smoother foot-lift curves.
+- Timed arm counter-swing to the legs, added lateral torso sway and improved vertical weight transfer.
+- Increased animation cadence for the existing brisk movement speed. Default movement remains 140 units/second and jog remains 190; joystick sensitivity is unchanged.
+- Turns finish smoothly after release without position drift; restored facing initializes its turn target correctly.
+- Updated release import-map versions so mobile browsers receive the new animation code.
+
 ## 0.7.2 — Brisk farm movement
 
 - Versioned the complete module graph, entry script and stylesheet so a phone receives the new control code immediately after an update.

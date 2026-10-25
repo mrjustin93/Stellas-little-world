@@ -12,7 +12,7 @@ export function restore(game,data){
  if(Array.isArray(data.plots))for(const saved of data.plots){if(!saved||typeof saved!=='object')continue;const o=game.garden.objects.find(o=>o.id===saved.id&&o.type==='plot');if(o&&Number.isInteger(saved.stage)&&finite(saved.stage,0,3)){o.stage=saved.stage;if(finite(saved.readyAt,0,24000024))o.readyAt=saved.readyAt;else if(o.stage===2)o.readyAt=game.clock.day*24+game.clock.hour+24;}}
  updateGarden(game.garden,game.clock);game.scene=data.scene==='garden'?game.garden:game.cabin;
  const b=game.scene.bounds,p=data.player;
- if(p&&finite(p.x,b.x+5,b.x+b.w-5)&&finite(p.y,b.y+4,b.y+b.h-3)&&!game.scene.objects.some(o=>o.solid&&overlaps(feet(p.x,p.y),o.solid))){game.player.x=p.x;game.player.y=p.y;game.player.facing=finite(p.facing,-10000,10000)?p.facing:0;}
+ if(p&&finite(p.x,b.x+5,b.x+b.w-5)&&finite(p.y,b.y+4,b.y+b.h-3)&&!game.scene.objects.some(o=>o.solid&&overlaps(feet(p.x,p.y),o.solid))){game.player.x=p.x;game.player.y=p.y;game.player.facing=finite(p.facing,-10000,10000)?p.facing:0;game.player.targetFacing=game.player.facing;}
  else if(game.scene.id==='garden'){game.player.x=223;game.player.y=153;}
  game.running=data.running===true;game.wideView=data.wideView===true;return true;
 }
