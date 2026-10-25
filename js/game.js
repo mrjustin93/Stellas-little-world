@@ -40,7 +40,7 @@ export class Game {
   if(!this.mapPanel.hidden){this.mapPanel.hidden=true;return;}
   if(this.interactions.open){this.interactions.close();return;}
   const o=nearest(this.player,this.scene.objects);if(!o)return;
-  if(o.id==='door'||o.id==='home'){this.scene=o.id==='door'?this.garden:this.cabin;this.player.x=o.id==='door'?223:83;this.player.y=o.id==='door'?153:289;this.player.direction='down';this.player.facing=0;this.player.stop();this.save();return;}
+  if(o.id==='door'||o.id==='home'){this.scene=o.id==='door'?this.garden:this.cabin;this.player.x=o.id==='door'?223:83;this.player.y=o.id==='door'?153:289;this.player.direction='down';this.player.facing=0;this.player.targetFacing=0;this.player.stop();this.save();return;}
   if(o.id==='gate'){
    if(o.open&&overlaps(feet(this.player.x,this.player.y),{x:o.x,y:o.y,w:o.w,h:o.h})){this.interactions.activate({message:'Take a step away from the opening so the gate can close.'});return;}
    toggleGate(o);this.save();return;
@@ -63,7 +63,7 @@ export class Game {
   const clockButton=document.querySelector('#world-clock');clockButton.textContent=this.clock.label+(this.clock.paused?' · paused':'');clockButton.setAttribute('aria-pressed',String(this.clock.paused));
   const pace=document.querySelector('#pace');pace.textContent=this.running?'Jog':'Walk';pace.setAttribute('aria-pressed',String(this.running));
   const region=this.scene.id==='cabin'?'HOME':this.player.x>570?(this.player.y>390?'PICNIC CLEARING':'FLOWER MEADOW'):this.player.x>470?'PINE TRAIL':'GARDEN';
-  document.querySelector('.location small').textContent=region+' · V0.7.2';
+  document.querySelector('.location small').textContent=region+' · V0.8';
   this.interactions.update(dt);const near=this.started&&!blocked?nearest(this.player,this.scene.objects):null;
   document.querySelector('#hint').textContent=near?`♡ ${near.type==='plot'||near.id==='gate'?near.message:near.id==='door'?'Explore the garden':near.id==='home'?'Go inside':near.id==='luna'?'Say hello to Luna':near.id==='seeds'?'Free strawberry seeds':near.id==='flowers'?'Pick a meadow flower':'Enjoy a little moment'}`:'';
   document.querySelector('#interact').classList.toggle('near',!!near);document.querySelector('#activity').textContent=near?'A little moment awaits':'Make yourself at home';

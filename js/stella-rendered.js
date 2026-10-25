@@ -2,6 +2,7 @@
 // Thirty-two facing steps blend the key views; gait is animated at runtime.
 import {StellaAtlas} from './stella.js';
 import {SCALE,gaitPose,isJogging} from './gait.js';
+import {solveLeg,footTarget,nearestFacing} from './locomotion.js';
 export class RenderedStella {
  constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
@@ -15,34 +16,34 @@ export class RenderedStella {
  }catch{this.ready=false;}}
  draw(a,p,pose,t){
   if(!this.ready){a.g.save();a.g.translate(p.x,p.y);a.g.scale(62/64,62/64);this.fallback.draw(a,{...p,x:0,y:0},pose,t);a.g.restore();return;}
-  const g=a.g,angle=pose?0:p.facing??0,index=(Math.round(angle/(Math.PI/16))%32+32)%32,im=this.views[index];
+  const g=a.g,angle=pose?0:p.facing??0,index=nearestFacing(angle),im=this.views[index];
   const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),cycle=gaitPose(p.gait,blend,jog),side=Math.sin(angle),front=Math.cos(angle);
   const sourceWidth=this.metadata.frames[Math.floor(index/2)].w/this.metadata.frames[Math.floor(index/2)].h*304;
   const cutL=80-sourceWidth*.235,cutR=80+sourceWidth*.235;
   a.shadow(p.x,p.y,9,2.8);g.save();g.translate(p.x,p.y);g.scale(SCALE.character,SCALE.character);g.translate(-80,-312);
   const drawRect=(x,y,w,h)=>g.drawImage(im,x,y,w,h,x,y,w,h);
+  const bob=-cycle.bob/SCALE.character;
   const leg=(half,step)=>{
-   const sign=half?1:-1,hipX=80+sign*sourceWidth*.125,hipY=196,kneeY=252;
-   const stride=step.forward*blend*cycle.amplitude;
-   const hipAngle=-side*stride*.27,depth=front*stride*4;
-   const kneeAngle=(Math.abs(side)>.3?-Math.sign(side):sign)*step.bend*blend*(jog?.55:.34);
-   g.save();g.translate(hipX,hipY+depth);g.rotate(hipAngle);g.translate(-hipX,-hipY);
-   drawRect(half*80,194,80,60);
-   g.translate(hipX,kneeY);g.rotate(kneeAngle);g.translate(-hipX,-kneeY-step.lift*blend*6);
-   drawRect(half*80,252,80,68);g.restore();
+   const sign=half?1:-1,hipX=80+sign*sourceWidth*.125;
+   const target=footTarget(hipX,step,angle,blend,jog);
+   const rig=solveLeg({x:hipX,y:196+bob},target,Math.abs(side)>.3?-Math.sign(side):sign);
+   // Draw each bone in its own local transform. No image-strip distortion.
+   g.save();g.translate(rig.hip.x,rig.hip.y);g.rotate(rig.thigh);g.translate(-hipX,-196);drawRect(half*80,194,80,60);g.restore();
+   g.save();g.translate(rig.knee.x,rig.knee.y);g.rotate(rig.shin);g.translate(-hipX,-252);drawRect(half*80,252,80,48);g.restore();
+   const toeRoll=step.lift>0?Math.sin(step.forward*Math.PI)*.13:(step.forward>.65?-.09:step.forward<-.65?.12:0);
+   g.save();g.translate(rig.foot.x,rig.foot.y);g.rotate(toeRoll*side*blend);g.translate(-hipX,-300);drawRect(half*80,298,80,22);g.restore();
   };
   if(blend>.001){const far=side>=0?0:1;leg(far,far?cycle.right:cycle.left);leg(1-far,far?cycle.left:cycle.right);}
   else drawRect(0,194,160,126);
   // Rigid clipped body preserves face detail; arms rotate from shoulders/elbows.
-  const bob=-cycle.bob/SCALE.character;
-  g.save();g.translate(80,196+bob);g.rotate(side*cycle.lean);g.translate(-80,-196);
+  g.save();g.translate(80+cycle.sway/SCALE.character,196+bob);g.rotate(side*cycle.lean);g.translate(-80,-196);
   g.save();g.beginPath();g.rect(0,0,160,196);g.rect(0,100,cutL,96);g.rect(cutR,100,160-cutR,96);g.clip('evenodd');g.drawImage(im,0,0);g.restore();
   for(const half of [0,1]){
    const sign=half?1:-1,x=half?cutR:0,w=half?160-cutR:cutL,shoulder=half?cutR-2:cutL+2,elbow=half?cutR+6:cutL-6;
-   const swing=Math.sin(p.gait*Math.PI*2)*sign*blend;
-   g.save();g.translate(shoulder,108);g.rotate(side*swing*(jog?.2:.12));g.translate(-shoulder,-108);
+   const step=half?cycle.right:cycle.left,swing=-step.forward*blend;
+   g.save();g.translate(shoulder,108);g.rotate(side*swing*(jog?.28:.18));g.translate(-shoulder,-108);
    drawRect(x,100,w,62);
-   g.translate(elbow,160);g.rotate(side*swing*.05);g.translate(-elbow,-160-front*swing*3);
+   g.translate(elbow,160);g.rotate(side*Math.max(0,swing)*(jog?.2:.1));g.translate(-elbow,-160-front*swing*3);
    drawRect(x,160,w,46);g.restore();
   }
   g.restore();g.restore();
