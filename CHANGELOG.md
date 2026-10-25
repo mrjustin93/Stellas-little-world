@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.8.1 — Correct leg projection
+
+- Corrected knee bending: solve in the character’s forward/vertical plane before projecting into the camera view. Front/back legs no longer use sideways knee bends.
+- Added projected bone foreshortening and reachable hip/ankle spacing to reduce stretching and foot lift during the support phase.
+- Trimmed upper-leg texture regions to avoid moving hands/sleeves with the thighs.
+- Kept brisk movement speed, touch sensitivity, character scale and saves.
+
 ## 0.8 — A clearer walking cycle
 
 - Added explicit foot targets and a two-bone knee/ankle solver so limbs keep consistent lengths through support and swing. Added separate toe roll and smoother foot-lift curves.
