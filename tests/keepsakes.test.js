@@ -64,6 +64,6 @@ test('legacy saves credit existing berries but malformed optional data never gra
   const state=restoreKeepsakes(value,18);assert.equal(state.harvests,0);assert.deepEqual(state.decorations,[]);
  }
  const safe=restoreKeepsakes({carryingLuna:'true',harvests:1,decorations:['pink-pot','pink-pot','flower-border','unknown',null]});
- assert.deepEqual(safe,{carryingLuna:false,harvests:1,decorations:['pink-pot']});
+ assert.deepEqual(safe,{carryingLuna:false,harvests:1,decorations:['pink-pot'],picnicComplete:false});
  assert.equal(restoreKeepsakes({harvests:Number.MAX_SAFE_INTEGER}).harvests,99999);
 });

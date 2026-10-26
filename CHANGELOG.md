@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.13 — A picnic wish and gentle sounds
+
+- Crop beds show water/ripe labels and growth bars; nearby beds show remaining game time and clock-pause status.
+- Bag offers an optional six-strawberry picnic wish. Bring Luna to the southeast blanket to share berries once, save a sweet memory and enjoy repeat picnics freely.
+- Soft synthesized footsteps, watering, birds and harvest chimes, with a saved mute preference. Audio starts on interaction and quiets in menus, hidden tabs and unfocused windows.
+
+
 ## 0.12 — Garden moments
 
 - Animated planting, watering and harvesting with jointed crouches, tools, water droplets, damp soil and berries going into a basket. Crop and inventory changes happen once at contact.

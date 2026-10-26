@@ -1,3 +1,4 @@
+import {cropStatus} from './cozy-goals.js';
 const solid=(id,type,x,y,w,h,message)=>({id,type,x,y,w,h,depth:y+h,message,solid:{x,y,w,h}});
 export function createGarden(){
  const objects=[
@@ -24,7 +25,7 @@ export function updateGarden(scene,clock){
  const now=clock.day*24+clock.hour;
  for(const plot of scene.objects.filter(o=>o.type==='plot')){
   if(plot.stage===2&&now>=plot.readyAt)plot.stage=3;
-  plot.message=['Plant a strawberry seed','Water the seedlings','Growing · ready after one game day','Harvest strawberries'][plot.stage];
+  plot.message=plot.stage===2?cropStatus(plot,clock).label:['Plant a strawberry seed','Needs water · water the seedlings','','Ripe · harvest strawberries'][plot.stage];
  }
 }
 export function tendPlot(plot,inventory,clock){

@@ -1,4 +1,4 @@
-# Playing Stella’s Little World v0.12
+# Playing Stella’s Little World v0.13
 
 Open the game's HTTPS link and tap Step inside (or Welcome back).
 
@@ -17,3 +17,9 @@ Planting, watering and harvesting take a short animation. Wait for Stella to fin
 Visit Luna, Interact, then choose Take Luna along. She travels with Stella and rests beside her during gardening or household activities. Bag → Return Luna to her cozy corner sends her home.
 
 Harvests unlock free decorations: pink flowerpot after 1, garden blooms after 3, picnic lanterns after 6. Bag → Decorate places or puts away each reward in a fixed location. Berries are never spent. Existing saves receive credit for past harvests. Luna and decorations save automatically.
+
+Beds show Water, a growing bar, or Ripe. Approach a growing bed for remaining game hours; pausing the clock pauses growth.
+
+Bag → A picnic with Luna tracks six strawberries. Carry Luna to the picnic blanket southeast of the meadow and Interact → Share 6 strawberries. The first picnic uses six berries and saves a memory; repeats cost nothing.
+
+Sound on/off in the header controls gentle footsteps, water, daytime birds and harvest chimes. Your preference is saved. Audio needs an initial tap and quiets when the game is hidden or unfocused.

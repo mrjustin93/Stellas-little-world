@@ -8,18 +8,26 @@ import {WorldClock} from './clock.js';
 import {overlaps,feet} from './collision.js';
 import {newInventory,loadProgress,saveProgress} from './progress.js';
 import {drawMap} from './map.js';
+import {cropStatus,picnicStatus,sharePicnic} from './cozy-goals.js';
+import {CozySound} from './sound.js';
 import {SCALE} from './gait.js';
 import {FarmingActions} from './activities.js';
 import {createKeepsakes,DECORATIONS,earnHarvest,toggleDecoration,setLunaCarried,syncKeepsakes} from './keepsakes.js';
 export class Game {
  constructor(){
   this.cabin=createCabin();this.cabin.id='cabin';this.garden=createGarden();this.scene=this.cabin;
-  this.clock=new WorldClock();this.player=new Player();this.inventory=newInventory();this.keepsakes=createKeepsakes();this.farming=new FarmingActions();this.running=false;this.wideView=false;this.toastTime=0;
+  this.sound=new CozySound();this.clock=new WorldClock();this.player=new Player();this.inventory=newInventory();this.keepsakes=createKeepsakes();this.farming=new FarmingActions();this.running=false;this.wideView=false;this.toastTime=0;
   this.interactions=new Interactions();this.started=false;this.saveTimer=0;this.last=0;this.time=0;this.flowerCooldown=0;
   try{this.resumed=loadProgress(this,localStorage);}catch{this.resumed=false;}
   syncKeepsakes(this);
   this.renderer=new Renderer(document.querySelector('#game'));
   this.mapPanel=document.querySelector('#map-panel');
+  const soundButton=document.querySelector('#sound-toggle');
+  const soundLabel=()=>{soundButton.textContent=this.sound.muted?'Sound off':'Sound on';soundButton.setAttribute('aria-pressed',String(this.sound.muted));soundButton.setAttribute('aria-label',this.sound.muted?'Enable gentle sounds':'Mute gentle sounds');};
+  soundLabel();soundButton.onclick=()=>{this.sound.toggle();soundLabel();};
+  document.addEventListener('pointerdown',()=>this.sound.unlock(),{passive:true});document.addEventListener('keydown',()=>this.sound.unlock());
+  window.addEventListener('blur',()=>this.sound.quiet());
+
   this.input=new Input(()=>{if(!this.started)return;this.interact();this.input.reset();},()=>{if(this.farming.active){const done=this.farming.active.committed;this.farming.cancel();this.player.activity=null;if(!done)this.notify('A little pause. Nothing used.');}this.closeOverlays();this.input.reset();});
   document.querySelector('#start').textContent=this.resumed?'Welcome back →':'Step inside →';
   document.querySelector('#start').onclick=()=>{this.started=true;document.querySelector('#welcome').hidden=true;this.closeOverlays();this.input.reset();this.save();};
@@ -33,7 +41,7 @@ export class Game {
   document.querySelector('#journal').addEventListener('click',()=>{this.mapPanel.hidden=true;this.input.reset();});
   document.querySelector('#close').addEventListener('click',()=>this.input.reset());
   window.addEventListener('pagehide',()=>{if(this.started)this.save();});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){this.input.reset();this.player.stop();if(this.started)this.save();}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){this.sound.quiet();this.input.reset();this.player.stop();if(this.started)this.save();}});
   this.frame=this.frame.bind(this);requestAnimationFrame(this.frame);
  }
  closeOverlays(){this.interactions.close();this.mapPanel.hidden=true;}
@@ -41,12 +49,21 @@ export class Game {
  save(){let ok=false;try{ok=saveProgress(this,localStorage);}catch{}document.querySelector('#save-state').textContent=ok?'Saved on this device':'Saving unavailable · keep this tab open';return ok;}
  showBag(){
   if(this.farming.active)return;this.closeOverlays();this.input.reset();
-  const choices=[{id:'decorate',label:'Decorate your little world',run:()=>this.showDecorations()}];
+  const choices=[{id:'picnic-goal',label:'A picnic with Luna',run:()=>this.showPicnicGoal()},{id:'decorate',label:'Decorate your little world',run:()=>this.showDecorations()}];
   if(this.keepsakes.carryingLuna)choices.unshift({id:'luna-home',label:'Return Luna to her cozy corner',run:()=>this.returnLuna()});
   this.interactions.activate({message:this.keepsakes.carryingLuna?'Luna is along for the adventure. She rests beside you while you tend the garden.':'Tools, little treasures, and room for a few more berries.'},choices);
   document.querySelector('#speaker').textContent='STELLA’S BACKPACK';
   const list=document.querySelector('#memories');list.replaceChildren();
   for(const text of [`🌱 Strawberry seeds · ${this.inventory.seeds}`,`🍓 Strawberries · ${this.inventory.berries}`,`🌼 Meadow flowers · ${this.inventory.flowers}`,'💧 Watering can · always ready',`♡ Harvests gathered · ${this.keepsakes.harvests}`]){const li=document.createElement('li');li.textContent=text;list.append(li);}list.hidden=false;
+ }
+ showPicnicGoal(){
+  this.closeOverlays();this.input.reset();this.interactions.activate({message:picnicStatus(this)});
+  document.querySelector('#speaker').textContent=this.keepsakes.picnicComplete?'A SWEET MEMORY':'A LITTLE GARDEN WISH';
+ }
+ enjoyPicnic(){
+  if(!sharePicnic(this))return;
+  this.save();this.interactions.close();this.interactions.activate({message:'Six sweet strawberries, two little cups, and your favorite bear. Stella settles beside Luna beneath the pines. “I saved the sweetest one for you.” ♡ A sweet memory is now in your Bag.'});
+  this.interactions.pose='hug';this.interactions.poseTime=8;this.interactions.emitHearts(this.player);this.sound.effect('picnic');
  }
  showDecorations(){
   this.closeOverlays();this.input.reset();
@@ -70,10 +87,13 @@ export class Game {
    if(o.open&&overlaps(feet(this.player.x,this.player.y),{x:o.x,y:o.y,w:o.w,h:o.h})){this.interactions.activate({message:'Take a step away from the opening so the gate can close.'});return;}
    toggleGate(o);this.save();return;
   }
+  if(o.id==='picnic'){
+   this.interactions.activate({message:picnicStatus(this)},[{id:'share-picnic',label:!this.keepsakes.carryingLuna?'Bring Luna along first':this.keepsakes.picnicComplete?'Enjoy another picnic ♡':`Share 6 strawberries · ${Math.min(6,this.inventory.berries)}/6`,disabled:!this.keepsakes.carryingLuna||(!this.keepsakes.picnicComplete&&this.inventory.berries<6),run:()=>this.enjoyPicnic()}]);return;
+  }
   let message=o.message;
   if(o.type==='plot'){
    if(this.farming.start(o,this.player,this.scene,this.inventory)){this.player.activity=this.farming.active;this.toastTime=0;this.input.reset();return;}
-   message=o.stage===2?'Your strawberries are growing happily. Come back after a game day. No extra watering needed.':'Your seed pouch is empty. The basket beside the cabin has free seeds.';
+   message=o.stage===2?cropStatus(o,this.clock).label+'. No extra watering needed.':'Your seed pouch is empty. The basket beside the cabin has free seeds.';
   }
   if(o.id==='seeds'){this.inventory.seeds=Math.max(12,this.inventory.seeds);message='A little gift for your garden. Your pouch now holds at least twelve strawberry seeds.';}
   if(o.id==='flowers'){if(this.time>=this.flowerCooldown){this.inventory.flowers++;this.flowerCooldown=this.time+15;message='A meadow flower for your backpack. You leave plenty for the bees.';}else message='Let’s leave the meadow to the bees for a moment.';}
@@ -85,6 +105,7 @@ export class Game {
   if(this.started&&!document.hidden&&this.farming.active){
    const result=this.farming.update(dt,this.scene,this.inventory,this.clock);this.input.reset();
    if(result){
+    this.sound.effect(result.kind);
     const rewards=result.kind==='harvest'?earnHarvest(this.keepsakes):[];syncKeepsakes(this);this.save();
     const message={plant:'Seed planted · water it next.',water:'Soil watered · ripe in one game day.',harvest:'+3 strawberries · +1 seed'}[result.kind];
     this.notify(message+(rewards.length?` · ${rewards[0].title} unlocked! Bag → Decorate`:''));
@@ -102,11 +123,13 @@ export class Game {
   const clockButton=document.querySelector('#world-clock');clockButton.textContent=this.clock.label+(this.clock.paused?' · paused':'');clockButton.setAttribute('aria-pressed',String(this.clock.paused));
   const pace=document.querySelector('#pace');pace.textContent=this.running?'Jog':'Walk';pace.setAttribute('aria-pressed',String(this.running));
   const region=this.scene.id==='cabin'?'HOME':this.player.x>570?(this.player.y>390?'PICNIC CLEARING':'FLOWER MEADOW'):this.player.x>470?'PINE TRAIL':'GARDEN';
-  document.querySelector('.location small').textContent=region+' · V0.12';
+  document.querySelector('.location small').textContent=region+' · V0.13';
   this.interactions.update(dt);const near=this.started&&!blocked?nearest(this.player,this.scene.objects):null;
   document.querySelector('#hint').textContent=near?`♡ ${near.type==='plot'||near.id==='gate'?near.message:near.id==='door'?'Explore the garden':near.id==='home'?'Go inside':near.id==='luna'?'Say hello to Luna':near.id==='seeds'?'Free strawberry seeds':near.id==='flowers'?'Pick a meadow flower':'Enjoy a little moment'}`:'';
   document.querySelector('#hint').hidden=this.toastTime>0||!!this.farming.active;
   document.querySelector('#interact').classList.toggle('near',!!near);document.querySelector('#activity').textContent=this.farming.active?.label||(near?'A little moment awaits':'Make yourself at home');
+  this.sound.update(dt,this,this.interactions.open||!this.mapPanel.hidden);
+  const picnic=this.garden.objects.find(o=>o.id==='picnic');picnic.celebrated=this.keepsakes.picnicComplete===true;
   this.renderer.render(this.scene,this.player,this.interactions,near,this.time,this.clock);
   requestAnimationFrame(this.frame);
  }
