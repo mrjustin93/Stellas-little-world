@@ -24,4 +24,8 @@ Bag → A picnic with Luna tracks six strawberries. Carry Luna to the picnic bla
 
 Sound on/off in the header controls gentle footsteps, water, daytime birds and harvest chimes. Your preference is saved. Audio needs an initial tap and quiets when the game is hidden or unfocused.
 
-The tall closet near the cabin’s lower wall offers three lounge sets. Choose Undress behind the curtain, then a Dress option. Closing the menu returns Stella dressed. The bath mat marked Bath leads to a separate bathroom; its Cabin mat returns home. Interact with the tub for a private bath and choose Dry off and get dressed to finish. Outfit and room save automatically.
+
+
+The cabin closet opens Stella’s dressing room. Switch categories to mix clothes, underwear, shoes, hats/headbands, necklaces, bracelets/watches and earrings. Use the turn arrows for different views. Undress shows a white tank and white briefs; underwear is visible when Bottoms is set to Underwear only. Wear this outfit applies and saves your choices; Cancel/Escape discards the preview. All items are available without spending berries.
+
+The Bath mat still leads to the bathroom. Bathtub interactions remain private behind a curtain.
