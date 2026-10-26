@@ -6,7 +6,7 @@ export const DECORATIONS=Object.freeze([
  {id:'picnic-lanterns',title:'Picnic lanterns',required:6,description:'A warm little glow above the picnic blanket.',scene:'garden',objects:[{id:'decor-picnic-lanterns',type:'reward-lanterns',x:601,y:407,w:112,h:34,depth:441}]},
 ]);
 const MAX_HARVESTS=99999;
-export const createKeepsakes=()=>({carryingLuna:false,harvests:0,decorations:[]});
+export const createKeepsakes=()=>({carryingLuna:false,harvests:0,decorations:[],picnicComplete:false});
 
 // Before keepsakes existed, every harvest gave exactly three berries and
 // berries could not be spent. Missing legacy data can therefore credit those
@@ -19,6 +19,7 @@ export function restoreKeepsakes(value,legacyBerries=0){
  }
  if(!value||typeof value!=='object'||Array.isArray(value))return state;
  state.carryingLuna=value.carryingLuna===true;
+ state.picnicComplete=value.picnicComplete===true;
  if(Number.isSafeInteger(value.harvests)&&value.harvests>=0)state.harvests=Math.min(MAX_HARVESTS,value.harvests);
  if(Array.isArray(value.decorations))state.decorations=DECORATIONS.filter(d=>state.harvests>=d.required&&value.decorations.includes(d.id)).map(d=>d.id);
  return state;

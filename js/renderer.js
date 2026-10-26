@@ -1,3 +1,4 @@
+import {cropStatus} from './cozy-goals.js';
 import {Art} from './art.js';
 import {RenderedStella} from './stella-rendered.js';
 export class Renderer {
@@ -47,7 +48,7 @@ export class Renderer {
   a.line([[x,y+2],[x+w*.25,y+9],[x+w*.5,y+11],[x+w*.75,y+9],[x+w,y+2]],'#8f7660',.8);
   for(let i=0;i<5;i++){const px=x+12+i*(w-24)/4,py=y+7+Math.sin((i+1)/6*Math.PI)*6;a.line([[px,py],[px,py+4]],'#a48b6d',.8);a.oval(px,py+12,10,12,'#ffe9ab22');a.round(px-4,py+3,8,13,a.gradient(px,py+3,13,'#fff4be','#edbd7e'),3);a.line([[px-3,py+7],[px+3,py+7]],'#cb976b66',.6);a.oval(px,py+9,1,2,'#fffad4');}break;
  case 'pond':a.oval(x+w/2,y+h/2,w/2+5,h/2+5,'#aac29a');a.oval(x+w/2,y+h/2,w/2+2,h/2+2,'#dac9a3');a.oval(x+w/2,y+h/2,w/2,h/2,a.gradient(x,y,h,'#7dcddd','#439ec4'));for(let i=0;i<5;i++){g.beginPath();g.ellipse(x+20+i*13,y+18+i%2*20,7+Math.sin(t+i)*2,2,0,0,Math.PI);g.strokeStyle='#d6f5ef88';g.lineWidth=1;g.stroke();}a.oval(x+65,y+12,7,4,'#7fad80');a.flower(x+64,y+11,'#f4d2e3');break;
- case 'picnic':a.round(x-4,y,w+8,h,'#d1af9177',8);a.round(x,y,w,h,'#edc6c4',6);for(let i=4;i<w;i+=10)a.line([[x+i,y+2],[x+i,y+h-2]],'#fff1d4aa',3);for(let i=4;i<h;i+=10)a.line([[x+2,y+i],[x+w-2,y+i]],'#fff1d4aa',3);a.box(x+8,y+8,22,15,'#bd9768');a.oval(x+60,y+25,12,7,'#fff2dc');a.oval(x+59,y+23,4,3,'#d37c88');break;
+ case 'picnic':a.round(x-4,y,w+8,h,'#d1af9177',8);a.round(x,y,w,h,'#edc6c4',6);for(let i=4;i<w;i+=10)a.line([[x+i,y+2],[x+i,y+h-2]],'#fff1d4aa',3);for(let i=4;i<h;i+=10)a.line([[x+2,y+i],[x+w-2,y+i]],'#fff1d4aa',3);a.box(x+8,y+8,22,15,'#bd9768');a.oval(x+60,y+25,12,7,'#fff2dc');a.oval(x+59,y+23,4,3,'#d37c88');if(o.celebrated){for(let i=0;i<3;i++)a.oval(x+55+i*5,y+24,2,2.5,'#dd788b');a.flower(x+42,y+15,'#f9e4c2');a.round(x+72,y+14,7,8,'#fff2da',2);}break;
  case 'basket':a.box(x,y+4,w,h-4,'#b68e62');for(let i=4;i<w;i+=5)a.line([[x+i,y+6],[x+i,y+h-2]],'#e4bf89',1);a.round(x+4,y-1,w-8,10,'#f5e2b9',2);a.flower(x+w/2,y+3,'#e9b1bf');break;
  case 'flowers':for(let i=0;i<8;i++){const px=x+4+i*11%30,py=y+4+i*7%20;a.line([[px,py+5],[px,py]],'#648a5b',1);a.flower(px,py,['#f1bed0','#f9e8b8','#fff4df'][i%3]);}break;
  case 'sign':a.line([[x+12,y+5],[x+12,y+h]],'#9e7b56',3);a.round(x,y-5,w,14,'#e7cfa6',2);a.line([[x+5,y+2],[x+20,y+2],[x+17,y-1]],'#8a7660',1);break;
@@ -57,6 +58,12 @@ export class Renderer {
  render(scene,p,interactions,near,t,clock){const g=this.g,a=this.a,c=this.canvas;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,c.width,c.height);g.fillStyle='#344f43';g.fillRect(0,0,c.width,c.height);
  const ratio=c.width/c.height,vh=(scene.id==='garden'?400:360)/(this.zoom||1),vw=ratio<1.2?Math.max(245,vh*ratio):480;const scale=Math.min(c.width/vw,c.height/vh),sx=Math.max(0,Math.min(scene.width-vw,p.x-vw/2)),sy=Math.max(0,Math.min(scene.height-vh,p.y-vh/2-20));this.camera={x:sx,y:sy,w:vw,h:vh};g.save();g.translate((c.width-vw*scale)/2-sx*scale,(c.height-vh*scale)/2-sy*scale);g.scale(scale,scale);this.room(scene);
  const time=this.motion.matches?0:t,list=scene.objects.filter(o=>!o.hidden&&o.x+o.w>sx-80&&o.x<sx+vw+80&&o.y+o.h>sy-80&&o.y<sy+vh+100&&!(o.id==='luna'&&interactions.pose==='hug')).map(o=>({depth:o.depth,draw:()=>this.object(o,time)}));list.push({depth:p.y,draw:()=>this.stella.draw(a,p,interactions.pose,time)});list.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
+ for(const plot of scene.objects.filter(o=>o.type==='plot'&&o.stage>0)){
+  const status=cropStatus(plot,clock),x=plot.x+plot.w/2,y=plot.y-8;
+  a.round(x-12,y-5,24,9,'#fff3dce8',4);g.textAlign='center';g.fillStyle='#765568';g.font='7px system-ui';
+  if(plot.stage===2){a.round(x-9,y-2,18,3,'#d8ceaa',1);if(status.progress>0)a.round(x-9,y-2,Math.max(1,18*status.progress),3,'#80a875',1);}
+  else g.fillText(plot.stage===1?'Water':'Ripe',x,y+2);
+ }
  this.stella.effects(a,p);
  if(clock.darkness){g.fillStyle=`rgba(27,42,85,${clock.darkness*(scene.id==='garden'?1:.55)})`;g.fillRect(0,0,scene.width,scene.height);if(scene.id!=='garden'){const glow=g.createRadialGradient(268,100,1,268,100,90);glow.addColorStop(0,'#ffc56c50');glow.addColorStop(1,'#ffc56c00');g.fillStyle=glow;g.fillRect(175,20,185,180);}}
  if(near&&!interactions.open){a.oval(near.x+near.w/2,near.y-24,8,8,'#fff5e8e8');g.fillStyle='#ae6b8c';g.textAlign='center';g.font='12px Georgia';g.fillText('♡',near.x+near.w/2,near.y-20);}
