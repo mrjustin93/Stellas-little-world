@@ -3,7 +3,7 @@
 import {StellaAtlas} from './stella.js';
 import {SCALE,isJogging} from './gait.js';
 import {nearestFacing} from './locomotion.js';
-import {walkingRig} from './skeleton.js';
+import {activityRig,paintHeldProp,paintActivityGround,paintActivityEffects} from './activity-art.js';
 import {paintLeg,paintArm} from './limbs.js';
 import {paintShoe} from './shoes.js';
 export class RenderedStella {
@@ -24,9 +24,15 @@ export class RenderedStella {
   }this.ready=true;
  }catch{this.ready=false;}}
  draw(a,p,pose,t){
-  if(!this.ready){a.g.save();a.g.translate(p.x,p.y);a.g.scale(62/64,62/64);this.fallback.draw(a,{...p,x:0,y:0},pose,t);a.g.restore();return;}
-  const g=a.g,angle=pose?0:p.facing??0,index=nearestFacing(angle);
-  const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),rig=walkingRig(p.gait,blend,jog,angle);
+  const activity=p.activity,carrying=p.carryingLuna===true;
+  const g=a.g,angle=activity?.facing??(pose?0:p.facing??0),index=nearestFacing(angle);
+  const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),rig=activityRig(p.gait,blend,jog,angle,activity,carrying&&!pose);
+  paintActivityGround(a,p,activity,carrying);
+  if(carrying&&!activity&&pose&&pose!=='hug')a.bear(p.x-12,p.y-1,.45);
+  if(!this.ready){
+   g.save();g.translate(p.x,p.y);g.scale(62/64,62/64);this.fallback.draw(a,{...p,x:0,y:0,facing:angle,walking:activity?false:p.walking},pose,t);g.restore();
+   g.save();g.translate(p.x,p.y);g.scale(SCALE.character,SCALE.character);g.translate(-80,-312);paintHeldProp(a,rig,activity,carrying&&!pose,angle);g.restore();return;
+  }
   a.shadow(p.x,p.y,9,2.8);g.save();g.translate(p.x,p.y);g.scale(SCALE.character,SCALE.character);g.translate(-80,-312);
   for(const leg of rig.legs)a.oval(leg.ground.x,leg.ground.y+11,7.5-leg.step.lift*1.5,1.7,leg.step.contact||blend<.05?'#4b42312b':'#4b423113');
   for(const leg of [...rig.legs].sort((a,b)=>a.hip.depth-b.hip.depth||a.foot.depth-b.foot.depth)){
@@ -35,7 +41,11 @@ export class RenderedStella {
   const arms=[...rig.arms].sort((a,b)=>a.shoulder.depth-b.shoulder.depth);
   const behind=arm=>arm.shoulder.depth< -6||Math.cos(angle)<-.85;
   for(const arm of arms)if(behind(arm))paintArm(a,arm);
-  g.drawImage(this.bodies[index],rig.body.x-80,rig.body.y-196);
+  if(Math.cos(angle)<0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
+  g.save();g.translate(rig.body.x,rig.body.y);
+  if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);
+  g.drawImage(this.bodies[index],-80,-196);g.restore();
+  if(Math.cos(angle)>=0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   for(const arm of arms)if(!behind(arm))paintArm(a,arm);
   g.restore();
   // Activity props use the same character scale and foot anchor as locomotion.
@@ -45,6 +55,12 @@ export class RenderedStella {
   if(pose==='read'){a.round(-10,-34,20,10,'#6c9b89',1);a.round(-9,-33,18,8,'#fff0d3',1);a.line([[0,-33],[0,-25]],'#b9a783',.8);}
   if(pose==='warm'){a.line([[-10,-35],[-3,-30],[-2,-34]],'#efa9c6',3.5);a.line([[10,-35],[3,-30],[2,-34]],'#efa9c6',3.5);}
   g.restore();
+ }
+ effects(a,p){
+  if(!p.activity)return;
+  const activity=p.activity,angle=activity.facing??p.facing??0;
+  const rig=activityRig(p.gait,0,isJogging(p.speed),angle,activity,p.carryingLuna===true);
+  paintActivityEffects(a,p,rig,activity,angle);
  }
  portrait(canvas){if(!this.ready)return;const g=canvas.getContext('2d');g.clearRect(0,0,128,128);const gradient=g.createLinearGradient(0,0,128,128);gradient.addColorStop(0,'#fae4d2');gradient.addColorStop(1,'#e9b9cc');g.fillStyle=gradient;g.fillRect(0,0,128,128);g.drawImage(this.views[0],28,4,104,105,0,0,128,128);}
 }

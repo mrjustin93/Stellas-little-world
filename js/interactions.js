@@ -1,12 +1,12 @@
 export function nearest(player, objects) {
   let best=null,distance=39;
   for(const object of objects){
-    if(!object.message)continue;
+    if(!object.message||object.hidden)continue;
     const s=object.solid||object;
     const x=Math.max(s.x,Math.min(player.x,s.x+s.w));
     const y=Math.max(s.y,Math.min(player.y,s.y+s.h));
     const d=Math.hypot(player.x-x,player.y-y);
-    if(d<distance){distance=d;best=object;}
+    if(d<distance&&d<(object.type==='plot'?24:39)){distance=d;best=object;}
   }
   return best;
 }
@@ -30,7 +30,7 @@ export class Interactions {
   }
   close(){
     this.open=false;this.panel.hidden=true;this.active=null;
-    // Closing a dialogue always returns Luna to her cozy corner.
+    document.querySelector('#choices').replaceChildren();
     this.pose='';this.poseTime=0;
   }
   updateJournal(){document.querySelector('#journal').textContent=`✿ Little moments · ${this.completed.size}/4`;}
@@ -46,7 +46,7 @@ export class Interactions {
     }
     list.hidden=false;document.querySelector('#action').hidden=true;
   }
-  activate(object){
+  activate(object,choices=[]){
     if(this.open){this.close();return;}
     if(!object)return;
     this.active=object;this.open=true;this.view='object';this.panel.hidden=false;
@@ -55,7 +55,12 @@ export class Interactions {
     document.querySelector('#memories').hidden=true;
     const action=document.querySelector('#action'),moment=MOMENTS[object.id];
     action.hidden=!moment;if(moment){action.textContent=moment.label;action.disabled=false;}
+    this.setChoices(choices);
     if(object.id==='luna')this.emitHearts(object);
+  }
+  setChoices(choices){
+    const list=document.querySelector('#choices');list.replaceChildren();
+    for(const choice of choices){const button=document.createElement('button');button.type='button';button.textContent=choice.label;button.disabled=choice.disabled===true;if(choice.id)button.dataset.choice=choice.id;button.onclick=choice.run;list.append(button);}
   }
   emitHearts(object){for(let i=0;i<5;i++)this.hearts.push({x:object.x+5+i*4,y:object.y-2,life:2+i*.15});}
   perform(){
