@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.12 — Garden moments
+
+- Animated planting, watering and harvesting with jointed crouches, tools, water droplets, damp soil and berries going into a basket. Crop and inventory changes happen once at contact.
+- Carry Luna around the cabin and garden; she rests beside Stella during tasks. Return her to her corner from Bag.
+- Free optional decoration rewards after 1, 3 and 6 harvests: a pink flowerpot, garden blooms and picnic lanterns. Place or put away through Bag → Decorate.
+- Preserve old saves and credit earlier harvests. Save Luna, rewards and placed decorations.
+
+
 ## 0.11 — Connected walking rig
 
 - Rotate anatomical hips, shoulders and limbs together. Side views now overlap the hips correctly; front and back views show the depth of each step.
