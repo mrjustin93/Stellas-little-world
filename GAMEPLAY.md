@@ -23,3 +23,5 @@ Beds show Water, a growing bar, or Ripe. Approach a growing bed for remaining ga
 Bag → A picnic with Luna tracks six strawberries. Carry Luna to the picnic blanket southeast of the meadow and Interact → Share 6 strawberries. The first picnic uses six berries and saves a memory; repeats cost nothing.
 
 Sound on/off in the header controls gentle footsteps, water, daytime birds and harvest chimes. Your preference is saved. Audio needs an initial tap and quiets when the game is hidden or unfocused.
+
+The tall closet near the cabin’s lower wall offers three lounge sets. Choose Undress behind the curtain, then a Dress option. Closing the menu returns Stella dressed. The bath mat marked Bath leads to a separate bathroom; its Cabin mat returns home. Interact with the tub for a private bath and choose Dry off and get dressed to finish. Outfit and room save automatically.
