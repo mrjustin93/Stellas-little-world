@@ -31,3 +31,5 @@ The cabin closet opens Stella’s dressing room. Switch categories to mix clothe
 The Bath mat still leads to the bathroom. Bathtub interactions remain private behind a curtain.
 
 In the Underwear tab, Preview: base layers shows the selected underwear without changing your chosen outer outfit. Toggle it to inspect the complete outfit again; Wear this outfit still saves your actual selections. The closet preview now renders at higher density on phone displays.
+
+The closet’s **Walk preview** button lets you inspect an outfit in motion. Use the arrows to turn Stella; choosing **Wear this outfit** applies it. Previewing does not move Stella or advance the game clock.

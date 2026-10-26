@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.18 — Complete feet and connected character rendering
+
+- Rebuilt bare feet with an ankle, heel, instep and rounded toes. All six footwear choices have readable shapes, compact soles and directional details; boots have distinct shafts and heel panels replace rear sneaker laces.
+- Joined thighs/calves and upper/lower arms into continuous shaded surfaces, including trousers and leggings, to remove cut-off edges at bent joints.
+- Removed the rectangular clothing fragment beneath the reference head. A tapered skin mask and aligned neck bridge connect the head to each outfit; far shoulders sit within the torso and tank straps follow their anchors.
+- Added a Walk preview button to the closet. It animates the draft outfit while game movement and time stay paused.
+- Added rendered-pixel regressions for visible feet and complete character framing, plus walking and activity review images. Rechecked all 69 catalogue choices.
+
 ## 0.17 — Every-item closet review
 
 - Visually reviewed all 69 catalogue choices in the actual closet preview, front/profile/back. Added repeatable labelled review-sheet capture.
