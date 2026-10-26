@@ -1,0 +1,12 @@
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('fs');
+(async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{const page=await browser.newPage({viewport:{width:412,height:892},isMobile:true,hasTouch:true,deviceScaleFactor:2}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto((process.env.GAME_URL||'http://127.0.0.1:8799/')+'?test');await page.click('#start');await page.waitForFunction(()=>__game.renderer.stella.ready);await page.evaluate(()=>{__game.player.x=205;__game.player.y=310;});await page.locator('#interact').tap();assert.equal(await page.evaluate(()=>__game.dressing.canvas.width),800);const catalog=await page.evaluate(async()=>{const {CLOTHING}=await import('./js/clothing.js');return CLOTHING;});let count=0;
+for(const [slot,items] of Object.entries(catalog)){
+ await page.locator(`[data-category=${slot}]`).click();
+ for(let n=0;n<items.length;n++){
+  const item=items[n];await page.evaluate(async(slot)=>{const {restoreClothes}=await import('./js/clothing.js');const room=__game.dressing;room.draft=restoreClothes();if(slot!=='top')room.draft.top='white-tank';if(slot==='underwear')room.draft.bottom='underwear';room.refresh();},slot);
+  await page.locator(`[data-item="${item.id}"]`).click();assert.equal(await page.evaluate(slot=>__game.dressing.draft[slot],slot),item.id);
+  await page.evaluate(({slot,item,n})=>{const r=__game.dressing,key=slot+'-'+Math.floor(n/9);window.__auditSheets??={};if(!__auditSheets[key]){const c=document.createElement('canvas');c.width=900;c.height=630;const g=c.getContext('2d');g.fillStyle='#fff0dc';g.fillRect(0,0,900,630);__auditSheets[key]=c;}const c=__auditSheets[key],g=c.getContext('2d'),x=n%3*300,y=Math.floor((n%9)/3)*210;g.fillStyle='#654d4d';g.font='13px Georgia';g.fillText(item.label,x+10,y+18);for(let i=0;i<3;i++){r.angle=i*Math.PI/2;r.preview();g.drawImage(r.canvas,95*r.pixelRatio,40*r.pixelRatio,210*r.pixelRatio,420*r.pixelRatio,x+i*100,y+25,100,180);}}, {slot,item,n});count++;
+ }
+}
+const pages=await page.evaluate(()=>Object.entries(__auditSheets).map(([key,c])=>({key,data:c.toDataURL().split(',')[1]})));for(const p of pages)fs.writeFileSync('/tmp/closet-audit-'+p.key+'.png',Buffer.from(p.data,'base64'));assert.equal(count,69);assert.deepEqual(errors,[]);console.log(`PASS ${count} real closet item selections and ${count*3} preview poses; ${pages.length} labelled review sheets saved.`);
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1)});

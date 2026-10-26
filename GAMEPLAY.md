@@ -29,3 +29,5 @@ Sound on/off in the header controls gentle footsteps, water, daytime birds and h
 The cabin closet opens Stella’s dressing room. Switch categories to mix clothes, underwear, shoes, hats/headbands, necklaces, bracelets/watches and earrings. Use the turn arrows for different views. Undress shows a white tank and white briefs; underwear is visible when Bottoms is set to Underwear only. Wear this outfit applies and saves your choices; Cancel/Escape discards the preview. All items are available without spending berries.
 
 The Bath mat still leads to the bathroom. Bathtub interactions remain private behind a curtain.
+
+In the Underwear tab, Preview: base layers shows the selected underwear without changing your chosen outer outfit. Toggle it to inspect the complete outfit again; Wear this outfit still saves your actual selections. The closet preview now renders at higher density on phone displays.
