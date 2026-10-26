@@ -1,4 +1,10 @@
 import {drawLimb} from './limbs.js';
+export const visibleBottom=items=>items.top.style==='dress'?{...items.top,style:'skirt'}:items.bottom.style==='underwear'?items.underwear:items.bottom;
+export function earPositions(angle){
+ const side=Math.sin(angle),front=Math.cos(angle);if(front<-.4)return [];
+ const signs=Math.abs(side)>.55?[side>0?-1:1]:[-1,1];
+ return signs.map(sign=>({x:80+sign*31*front-12*side,y:78+(-12*front-sign*31*side)*.1}));
+}
 const skin=['#ffdfb9','#f2c1a0','#d99b84'];
 export function shade(color,amount){
  const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
@@ -34,7 +40,7 @@ export function paintClothedBody(a,image,angle,items,textures={}){
   if(top.style==='sweater')for(let y=166;y<176;y+=3)a.line([[cx-w+6,y],[cx+w-6,y]],'#fff4df44',.8);
  }
  if(textures.top)g.drawImage(textures.top,0,100,160,78,0,100,160,78);
- const b=bottom.style==='underwear'?under:bottom,c=b.color,half=32-11*profile;
+ const b=visibleBottom(items),c=b.color,half=32-11*profile;
  if(b.style==='briefs'||b.style==='hipster'){
   const waist=b.style==='hipster'?187:181;
   surface(g,p=>{p.moveTo(cx-half,waist);p.quadraticCurveTo(cx,waist+2,cx+half,waist);p.quadraticCurveTo(cx+half-5,197,cx+9,207);p.lineTo(cx-9,207);p.quadraticCurveTo(cx-half+5,197,cx-half,waist);},material(g,cx,half,c),shade(c,-.14));
@@ -65,16 +71,16 @@ export function paintClothingLeg(a,rig,item){
  drawLimb(a.g,rig.hip,rig.knee,25,17,fabric(item.color));drawLimb(a.g,rig.knee,rig.foot,17,13,fabric(item.color));
 }
 export function paintAccessories(a,rig,angle,items){
- const g=a.g,cx=rig.body.x,y=rig.body.y-196;
+ const g=a.g,side=Math.sin(angle),front=Math.cos(angle),hx=80+side*5,hw=31-8*Math.abs(side);
  g.save();g.translate(rig.body.x,rig.body.y);if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);g.translate(-80,-196);
  const h=items.head;
  if(h.style==='band'||h.style==='bow'){
-  a.line([[49,45],[55,24],[78,16],[102,25],[112,46]],h.color,5);
-  if(h.style==='bow'){a.shape([[106,29],[91,16],[90,36]],h.color);a.shape([[107,29],[120,17],[121,37]],h.color);a.oval(106,29,4,4,'#e4d0ef');}
- }else if(h.style==='flowers')for(let i=0;i<7;i++)a.flower(50+i*10,32-Math.sin(i/6*Math.PI)*13,'#fff4cf');
+  g.beginPath();g.moveTo(hx-hw,45);g.bezierCurveTo(hx-hw+2,9,hx+hw-2,9,hx+hw,45);g.strokeStyle=h.color;g.lineWidth=5;g.stroke();
+  if(h.style==='bow'&&side<.55){const bx=80+29*front-12*side;a.shape([[bx,29],[bx-13,18],[bx-13,36]],h.color);a.shape([[bx,29],[bx+13,18],[bx+13,36]],h.color);a.oval(bx,29,4,4,'#e4d0ef');}
+ }else if(h.style==='flowers')for(let i=0;i<7;i++)a.flower(hx-hw+i*hw/3,32-Math.sin(i/6*Math.PI)*13,'#fff4cf');
  else if(h.style==='hat'){a.oval(80,32,61,12,'#d6b77c');a.round(44,-1,73,35,a.gradient(44,-1,35,'#f3dba5','#c4a169'),17);a.line([[46,27],[115,27]],'#d891ac',5);a.flower(109,25,'#f6cada');}
  else if(h.style==='beanie'){a.round(39,1,82,39,h.color,21);a.round(39,29,82,12,'#bbddc8',4);a.oval(81,0,10,9,h.color);}
- if(Math.cos(angle)>-.25&&items.ears.style!=='none')for(const x of [48,111]){const e=items.ears;if(e.style==='hoop'){g.strokeStyle=e.color;g.lineWidth=1.5;g.beginPath();g.ellipse(x,81,3,5,0,0,Math.PI*2);g.stroke();}else a.oval(x,80,e.style==='drop'?2.5:2,e.style==='drop'?5:2,e.color);}
+ if(items.ears.style!=='none')for(const {x,y} of earPositions(angle)){const e=items.ears;if(e.style==='hoop'){g.strokeStyle=e.color;g.lineWidth=1.5;g.beginPath();g.ellipse(x,y+3,3,5,0,0,Math.PI*2);g.stroke();}else a.oval(x,y,e.style==='drop'?2.5:2,e.style==='drop'?5:2,e.color);}
  g.restore();
  if(items.wrist.style!=='none')for(const arm of rig.arms){const {wrist:w,elbow:e}=arm;const p={x:w.x+(e.x-w.x)*.06,y:w.y+(e.y-w.y)*.06};a.line([[p.x-6,p.y],[p.x+6,p.y]],items.wrist.color,items.wrist.style==='watch'?4:2.5);if(items.wrist.style==='watch')a.oval(p.x,p.y,3,4,'#f8f0d9');if(items.wrist.style==='beads')for(let i=-2;i<=2;i++)a.oval(p.x+i*2.4,p.y,1.6,1.7,items.wrist.color);}
 }

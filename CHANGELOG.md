@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.16.1 — Appearance review fixes
+
+- Dresses keep their skirt layer with every bottoms and underwear selection.
+- Profile earrings and hair bands follow the head instead of retaining front-view positions.
+- Removed the source hoodie pendant when No necklace is selected and cleaned stray pink collar pixels at the neck in other outfits.
+- Reviewed clothing while turning, walking and performing garden activities.
+
+
 ## 0.16 — Stella appearance polish
 
 - Replaced boxy clothing silhouettes with curved shoulders, waist and hems, soft material shading, fabric folds, seams, pockets and trim.
