@@ -10,7 +10,7 @@ import {activityRig,paintHeldProp,paintActivityGround,paintActivityEffects} from
 import {paintLeg,paintArm} from './limbs.js';
 import {paintShoe} from './shoes.js';
 export class RenderedStella {
- constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.bodies=[];this.outfits={};this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
+ constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.bodies=[];this.outfits={};this.garments=new Map();this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
  }
  prepare(){try{
@@ -30,6 +30,14 @@ export class RenderedStella {
   id=outfitId(id);if(id==='rose')return this.bodies[index];
   const key=id+index;if(!this.outfits[key]){const c=document.createElement('canvas');c.width=160;c.height=320;const g=c.getContext('2d');g.drawImage(this.bodies[index],0,0);const pixels=g.getImageData(0,0,160,320);tintClothes(pixels.data,id);g.putImageData(pixels,0,0);this.outfits[key]=c;}return this.outfits[key];
  }
+ garmentFor(index,item,part){
+  if((part==='top'&&item.style!=='hoodie')||(part==='bottom'&&item.style!=='shorts'))return null;
+  const key=index+item.id+part;if(this.garments.has(key))return this.garments.get(key);
+  const c=document.createElement('canvas');c.width=160;c.height=320;const g=c.getContext('2d');g.drawImage(this.bodies[index],0,0);
+  const p=g.getImageData(0,0,160,320),rgb=[1,3,5].map(i=>parseInt(item.color.slice(i,i+2),16));
+  for(let i=160*100*4;i<p.data.length;i+=4){const r=p.data[i],v=p.data[i+1],b=p.data[i+2];if(r>v*1.08&&b>v*1.03&&r>b*.9){p.data[i]=Math.min(255,r*rgb[0]/234);p.data[i+1]=Math.min(255,v*rgb[1]/160);p.data[i+2]=Math.min(255,b*rgb[2]/192);}}
+  g.putImageData(p,0,0);if(this.garments.size>=64)this.garments.delete(this.garments.keys().next().value);this.garments.set(key,c);return c;
+ }
  draw(a,p,pose,t){
   if(p.changing){const g=a.g;a.shadow(p.x,p.y,16,3);a.line([[p.x-18,p.y],[p.x-18,p.y-67],[p.x+18,p.y-67],[p.x+18,p.y]],'#ac8c69',2);a.round(p.x-17,p.y-65,34,62,a.gradient(p.x,p.y-65,62,'#f5ccdc','#bd8ba8'),3);for(let i=-12;i<15;i+=7)a.line([[p.x+i,p.y-64],[p.x+i,p.y-5]],'#fff0df55',1);if(p.carryingLuna)a.bear(p.x+25,p.y,.45);return;}
   const items=p.clothes?clothingItems(restoreClothes(p.clothes,p.outfit)):null;
@@ -48,7 +56,7 @@ export class RenderedStella {
   a.shadow(p.x,p.y,9,2.8);g.save();g.translate(p.x,p.y);g.scale(SCALE.character,SCALE.character);g.translate(-80,-312);
   for(const leg of rig.legs)a.oval(leg.ground.x,leg.ground.y+11,7.5-leg.step.lift*1.5,1.7,leg.step.contact||blend<.05?'#4b42312b':'#4b423113');
   for(const leg of [...rig.legs].sort((a,b)=>a.hip.depth-b.hip.depth||a.foot.depth-b.foot.depth)){
-   paintLeg(a,leg,24,items?.shoes.style!=='bare');if(items)paintClothingLeg(a,leg,items.bottom);paintShoe(a,leg.foot,angle,leg.step.roll,blend,items?.shoes);
+   paintLeg(a,leg,26,items?.shoes.style!=='bare');if(items)paintClothingLeg(a,leg,items.bottom);paintShoe(a,leg.foot,angle,leg.step.roll,blend,items?.shoes);
   }
   const arms=[...rig.arms].sort((a,b)=>a.shoulder.depth-b.shoulder.depth);
   const behind=arm=>arm.shoulder.depth< -6||Math.cos(angle)<-.85;
@@ -56,7 +64,7 @@ export class RenderedStella {
   if(Math.cos(angle)<0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   g.save();g.translate(rig.body.x,rig.body.y);
   if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);
-  if(items){g.translate(-80,-196);paintClothedBody(a,this.views[index],angle,items);}else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
+  if(items){g.translate(-80,-196);paintClothedBody(a,this.views[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')});}else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
   if(Math.cos(angle)>=0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   for(const arm of arms)if(!behind(arm))paintArm(a,arm,palette,sleeve);
   if(items)paintAccessories(a,rig,angle,items);

@@ -1,41 +1,60 @@
 import {drawLimb} from './limbs.js';
 const skin=['#ffdfb9','#f2c1a0','#d99b84'];
-export const fabric=color=>[color,color,color];
-// Original opaque clothing shapes share the walking rig's torso and limb anchors.
-export function paintClothedBody(a,image,angle,items){
- const g=a.g,profile=Math.abs(Math.sin(angle)),cx=80+Math.sin(angle)*7,w=30-11*profile,top=items.top,bottom=items.bottom,under=items.underwear;
- a.round(cx-8,91,16,27,skin[1],5);
- a.round(cx-w,103,w*2,94,a.gradient(cx-w,103,94,skin[0],skin[2]),13);
+export function shade(color,amount){
+ const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+ return '#'+rgb.map(c=>Math.round(amount>=0?c+(255-c)*amount:c*(1+amount)).toString(16).padStart(2,'0')).join('');
+}
+export const fabric=color=>[shade(color,.28),color,shade(color,-.22)];
+function material(g,cx,w,color){const [light,mid,dark]=fabric(color),v=g.createLinearGradient(cx-w,0,cx+w,0);v.addColorStop(0,dark);v.addColorStop(.28,light);v.addColorStop(.62,mid);v.addColorStop(1,dark);return v;}
+function surface(g,path,fill,edge){g.beginPath();path(g);g.closePath();g.fillStyle=fill;g.fill();if(edge){g.strokeStyle=edge;g.lineWidth=.8;g.stroke();}}
+function torsoPath(g,cx,w,top=108,hem=177){
+ g.moveTo(cx-w+7,top);g.quadraticCurveTo(cx-w-5,top+3,cx-w,top+24);g.bezierCurveTo(cx-w+2,148,cx-w+7,158,cx-w+5,hem);g.quadraticCurveTo(cx,hem+4,cx+w-5,hem);g.bezierCurveTo(cx+w-7,158,cx+w-2,148,cx+w,top+24);g.quadraticCurveTo(cx+w+5,top+3,cx+w-7,top);
+}
+// Sculpted silhouettes, opaque fabric and source shading share the same anchors.
+export function paintClothedBody(a,image,angle,items,textures={}){
+ const g=a.g,profile=Math.abs(Math.sin(angle)),front=Math.cos(angle),cx=80+Math.sin(angle)*7,w=30-11*profile,top=items.top,bottom=items.bottom,under=items.underwear;
+ a.round(cx-7,91,14,27,a.gradient(cx,91,27,'#e8ae91','#f6cba9'),5);
+ surface(g,p=>{torsoPath(p,cx,w-1,103,191);},material(g,cx,w,'#f3c6a5'));
+ a.oval(cx,106,7,2,'#c88f7c44');
  if(top.style==='tank'){
-  a.round(cx-w+4,125,w*2-8,52,a.gradient(cx,125,52,top.color,'#dfd9d1'),5);
-  a.line([[cx-w+8,131],[cx-w+9,110]],top.color,8);a.line([[cx+w-8,131],[cx+w-9,110]],top.color,8);
-  a.line([[cx-w+4,174],[cx+w-4,174]],'#d6cec155',1);
+  surface(g,p=>{p.moveTo(cx-w+6,123);p.quadraticCurveTo(cx,137,cx+w-6,123);p.bezierCurveTo(cx+w-3,144,cx+w-9,158,cx+w-6,175);p.quadraticCurveTo(cx,179,cx-w+6,175);p.bezierCurveTo(cx-w+9,158,cx-w+3,144,cx-w+6,123);},material(g,cx,w,top.color),shade(top.color,-.15));
+  for(const sign of [-1,1])a.line([[cx+sign*(w-7),126],[cx+sign*(w-9),110]],shade(top.color,.1),6);
+  a.line([[cx-w+8,173],[cx+w-8,173]],shade(top.color,-.12),1);
+  a.line([[cx-w+10,149],[cx-w+12,162]],'#ffffff66',1);
  }else{
-  a.round(cx-w-1,108,w*2+2,70,a.gradient(cx,108,75,top.color,top.color),8);
-  a.oval(cx,110,10,7,skin[1]);
+  surface(g,p=>torsoPath(p,cx,w,108,177),material(g,cx,w,top.color),shade(top.color,-.22));
+  a.oval(cx,110,10,front<0?4:7,shade(top.color,-.2));a.oval(cx,108,8,front<0?3:6,skin[1]);
   if(top.style==='hoodie'||top.style==='cardigan'){
-   a.round(cx-11,121,22,54,'#fff6e9',3);a.line([[cx-13,118],[cx-13,175]],'#fff4df99',2);a.line([[cx+13,118],[cx+13,175]],'#fff4df99',2);
-   if(top.style==='hoodie'){a.line([[cx-17,117],[cx-16,143]],'#fff3e1',1.5);a.line([[cx+17,117],[cx+16,143]],'#fff3e1',1.5);}
-  }else if(top.style==='sweater')for(let y=164;y<177;y+=4)a.line([[cx-w+2,y],[cx+w-2,y]],'#fff4df55',1);
+   if(front>.12){const opening=Math.max(3,11*front);a.round(cx-opening,120,opening*2,55,material(g,cx,opening,'#fff4e7'),3);for(const sign of [-1,1])a.line([[cx+sign*(opening+3),117],[cx+sign*(opening+2),175]],shade(top.color,.4),2);}
+   else if(top.style==='hoodie'){surface(g,p=>{p.moveTo(cx-w+4,109);p.quadraticCurveTo(cx,104,cx+w-4,109);p.quadraticCurveTo(cx+w-1,130,cx,134);p.quadraticCurveTo(cx-w+1,130,cx-w+4,109);},material(g,cx,w,shade(top.color,.09)),shade(top.color,-.25));a.line([[cx-w+9,117],[cx,128],[cx+w-9,117]],'#fff4e544',1);}
+   if(top.style==='hoodie'&&front>.12)for(const sign of [-1,1]){a.line([[cx+sign*16,120],[cx+sign*15,144]],'#fff3e1',1.3);a.oval(cx+sign*15,145,1,2,'#e4d6c2');}
+  }
+  a.line([[cx-w+6,171],[cx,173],[cx+w-6,171]],shade(top.color,-.17),1.2);
+  for(const sign of [-1,1])a.line([[cx+sign*(w-5),148],[cx+sign*(w-10),154]],shade(top.color,-.13),.9);
+  if(top.style==='sweater')for(let y=166;y<176;y+=3)a.line([[cx-w+6,y],[cx+w-6,y]],'#fff4df44',.8);
  }
- const b=bottom.style==='underwear'?under:bottom,c=b.color,half=34-12*profile;
+ if(textures.top)g.drawImage(textures.top,0,100,160,78,0,100,160,78);
+ const b=bottom.style==='underwear'?under:bottom,c=b.color,half=32-11*profile;
  if(b.style==='briefs'||b.style==='hipster'){
   const waist=b.style==='hipster'?187:181;
-  a.shape([[cx-half,waist],[cx+half,waist],[cx+half-4,194],[cx+9,207],[cx-9,207],[cx-half+4,194]],c);
-  a.line([[cx-half+2,waist+2],[cx+half-2,waist+2]],'#d9cbd1',1);
+  surface(g,p=>{p.moveTo(cx-half,waist);p.quadraticCurveTo(cx,waist+2,cx+half,waist);p.quadraticCurveTo(cx+half-5,197,cx+9,207);p.lineTo(cx-9,207);p.quadraticCurveTo(cx-half+5,197,cx-half,waist);},material(g,cx,half,c),shade(c,-.14));
+  a.line([[cx-half+2,waist+2],[cx,waist+3],[cx+half-2,waist+2]],shade(c,-.12),1);
  }else if(b.style==='skirt'||top.style==='dress'){
   const color=top.style==='dress'?top.color:c;
-  a.shape([[cx-half+5,178],[cx+half-5,178],[cx+half+9,240],[cx-half-9,240]],color);
-  for(let i=-2;i<=2;i++)a.line([[cx+i*10,188],[cx+i*15,237]],'#fff3e544',1);
-  a.line([[cx-half+3,181],[cx+half-3,181]],'#fff1dc99',2);
+  surface(g,p=>{p.moveTo(cx-half+6,177);p.lineTo(cx+half-6,177);p.quadraticCurveTo(cx+half-3,212,cx+half+9,237);p.quadraticCurveTo(cx,245,cx-half-9,237);p.quadraticCurveTo(cx-half+3,212,cx-half+6,177);},material(g,cx,half+9,color),shade(color,-.22));
+  for(let i=-2;i<=2;i++)a.line([[cx+i*9,190],[cx+i*14,235]],shade(color,i%2===0?.15:-.13),1.3);
+  a.line([[cx-half+7,182],[cx,183],[cx+half-7,182]],shade(color,-.18),2);
+  a.line([[cx-half-5,236],[cx,240],[cx+half+5,236]],shade(color,.2),1);
  }else{
-  a.round(cx-half,180,half*2,25,c,5);a.line([[cx-half+3,183],[cx+half-3,183]],'#fff3e488',1);
-  a.line([[cx,189],[cx,204]],'#90748266',1);
+  surface(g,p=>{p.moveTo(cx-half+3,180);p.quadraticCurveTo(cx,184,cx+half-3,180);p.lineTo(cx+half,202);p.quadraticCurveTo(cx+16,209,cx+2,204);p.lineTo(cx,197);p.lineTo(cx-2,204);p.quadraticCurveTo(cx-16,209,cx-half,202);p.closePath();},material(g,cx,half,c),shade(c,-.2));
+  a.line([[cx-half+4,183],[cx,185],[cx+half-4,183]],shade(c,.25),2);
+  if(front>.1){a.line([[cx,186],[cx,200]],shade(c,-.25),.8);a.oval(cx,187,1.4,1.4,shade(c,.4));if(b.style==='shorts'){a.line([[cx,187],[cx-5,193],[cx-4,198]],'#f9efde',.9);a.line([[cx,187],[cx+4,193],[cx+5,198]],'#f9efde',.9);}}
+  for(const sign of [-1,1])a.line([[cx+sign*(half-7),187],[cx+sign*(half-9),195],[cx+sign*(half-16),198]],shade(c,-.18),.9);
  }
- // Keep the reference face and tousled pixie cut untouched above the collar.
- g.drawImage(image,0,0,160,95,0,0,160,95);
- g.drawImage(image,cx-12,95,24,8,cx-12,95,24,8);
- if(items.neck.style!=='none'&&Math.cos(angle)>.05){
+ if(textures.bottom&&top.style!=='dress')g.drawImage(textures.bottom,0,178,160,31,0,178,160,31);
+ // Keep Stella's original face and pixie-cut texture clean at the neck join.
+ g.drawImage(image,0,0,160,95,0,0,160,95);g.drawImage(image,cx-12,95,24,8,cx-12,95,24,8);
+ if(items.neck.style!=='none'&&front>.05){
   a.line([[cx-9,107],[cx-5,118],[cx+5,118],[cx+9,107]],items.neck.color,1.2);
   if(items.neck.style==='pearl')for(let i=-2;i<=2;i++)a.oval(cx+i*3.5,117+Math.cos(i)*2,1.8,1.8,'#fff8e6');
   else{a.oval(cx,121,3,3,items.neck.color);if(items.neck.style==='heart')a.shape([[cx-4,120],[cx+4,120],[cx,126]],items.neck.color);}
@@ -43,7 +62,7 @@ export function paintClothedBody(a,image,angle,items){
 }
 export function paintClothingLeg(a,rig,item){
  if(!['trousers','leggings'].includes(item.style))return;
- drawLimb(a.g,rig.hip,rig.knee,25,17,fabric(item.color));drawLimb(a.g,rig.knee,rig.foot,17,13,fabric(item.color));a.oval(rig.knee.x,rig.knee.y,8.5,7,item.color);
+ drawLimb(a.g,rig.hip,rig.knee,25,17,fabric(item.color));drawLimb(a.g,rig.knee,rig.foot,17,13,fabric(item.color));
 }
 export function paintAccessories(a,rig,angle,items){
  const g=a.g,cx=rig.body.x,y=rig.body.y-196;
