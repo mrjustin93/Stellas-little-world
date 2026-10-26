@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.14 — Closet and bathroom
+
+- Added a cabin closet with rose, mint and lavender lounge sets. Undress behind a changing curtain and choose an outfit to dress; closing the curtain menu restores the worn outfit.
+- Added a separate bathroom with bath and curtain, sink/mirror, toilet, fluffy towels, bathmat and a return door. Bathing uses a private curtain interaction.
+- Saved outfit and bathroom location with backward-compatible recovery. Clothing recolors preserve Stella’s reference face, hair and skin.
+
+
 ## 0.13.1 — Watering animation fix
 
 - Anchor the can handle to Stella’s working hand and ease its tilt through pouring and recovery. Mirror the can and spout together for left-facing views.

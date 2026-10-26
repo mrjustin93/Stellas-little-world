@@ -14,5 +14,16 @@ obj('sofa','sofa',204,161,84,43,'Stella pats the cushion beside her. “There’
 obj('coffee','table',216,234,60,28,'A warm mug and a half-finished journal.'),
 obj('dining','dining',358,185,56,48,'“I saved you the sunny seat,” Stella says with a little wink.'),
 obj('plant2','plant',418,282,23,31,'A tiny patch of green, even indoors.'),
-obj('door','door',58,304,49,27,'The forest can wait. Let’s enjoy being home today.',false)
+obj('door','door',58,304,49,27,'The forest can wait. Let’s enjoy being home today.',false),
+obj('closet','closet',148,277,48,54,'Open Stella’s closet'),
+obj('bathroom-door','room-door',310,304,48,27,'Visit the bathroom',false)
+]};}
+
+export function createBathroom(){return {id:'bathroom',width:320,height:300,bounds:{x:24,y:80,w:272,h:200},objects:[
+obj('bath','tub',36,94,104,65,'A warm bath behind a soft pink curtain.'),
+obj('washbasin','washbasin',211,95,65,43,'Fresh water, rose soap and a little mirror.'),
+obj('toilet','toilet',225,184,40,49,'A little privacy and a fresh start.'),
+obj('towels','towels',47,194,52,24,'Fluffy towels, warm from the sunny window.',false),
+obj('bathmat','bathmat',116,184,65,35,null,false),
+obj('bathroom-exit','room-door',135,254,48,22,'Return to the cabin',false)
 ]};}

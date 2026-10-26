@@ -1,4 +1,5 @@
-import {createCabin} from './scene.js';
+import {OUTFITS,outfitId} from './wardrobe.js';
+import {createCabin,createBathroom} from './scene.js';
 import {Player} from './player.js';
 import {Input} from './input.js';
 import {Interactions,nearest} from './interactions.js';
@@ -15,7 +16,7 @@ import {FarmingActions} from './activities.js';
 import {createKeepsakes,DECORATIONS,earnHarvest,toggleDecoration,setLunaCarried,syncKeepsakes} from './keepsakes.js';
 export class Game {
  constructor(){
-  this.cabin=createCabin();this.cabin.id='cabin';this.garden=createGarden();this.scene=this.cabin;
+  this.cabin=createCabin();this.cabin.id='cabin';this.garden=createGarden();this.bathroom=createBathroom();this.scene=this.cabin;
   this.sound=new CozySound();this.clock=new WorldClock();this.player=new Player();this.inventory=newInventory();this.keepsakes=createKeepsakes();this.farming=new FarmingActions();this.running=false;this.wideView=false;this.toastTime=0;
   this.interactions=new Interactions();this.started=false;this.saveTimer=0;this.last=0;this.time=0;this.flowerCooldown=0;
   try{this.resumed=loadProgress(this,localStorage);}catch{this.resumed=false;}
@@ -39,12 +40,12 @@ export class Game {
   document.querySelector('#pace').onclick=()=>{this.running=!this.running;this.save();};
   document.querySelector('#world-clock').onclick=()=>{this.clock.paused=!this.clock.paused;this.save();};
   document.querySelector('#journal').addEventListener('click',()=>{this.mapPanel.hidden=true;this.input.reset();});
-  document.querySelector('#close').addEventListener('click',()=>this.input.reset());
+  document.querySelector('#close').addEventListener('click',()=>{this.player.changing=false;this.input.reset();});
   window.addEventListener('pagehide',()=>{if(this.started)this.save();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){this.sound.quiet();this.input.reset();this.player.stop();if(this.started)this.save();}});
   this.frame=this.frame.bind(this);requestAnimationFrame(this.frame);
  }
- closeOverlays(){this.interactions.close();this.mapPanel.hidden=true;}
+ closeOverlays(){this.player.changing=false;this.interactions.close();this.mapPanel.hidden=true;}
  notify(message){document.querySelector('#toast').textContent=message;document.querySelector('#toast').hidden=false;this.toastTime=5;}
  save(){let ok=false;try{ok=saveProgress(this,localStorage);}catch{}document.querySelector('#save-state').textContent=ok?'Saved on this device':'Saving unavailable · keep this tab open';return ok;}
  showBag(){
@@ -55,6 +56,13 @@ export class Game {
   document.querySelector('#speaker').textContent='STELLA’S BACKPACK';
   const list=document.querySelector('#memories');list.replaceChildren();
   for(const text of [`🌱 Strawberry seeds · ${this.inventory.seeds}`,`🍓 Strawberries · ${this.inventory.berries}`,`🌼 Meadow flowers · ${this.inventory.flowers}`,'💧 Watering can · always ready',`♡ Harvests gathered · ${this.keepsakes.harvests}`]){const li=document.createElement('li');li.textContent=text;list.append(li);}list.hidden=false;
+ }
+ showCloset(undressed=false){
+  this.interactions.close();this.input.reset();this.player.changing=undressed;
+  this.interactions.activate({id:'closet',message:undressed?'Your clothes are on the hook behind the changing curtain. Choose an outfit to get dressed.':`Wearing: ${OUTFITS[outfitId(this.player.outfit)].label}. Choose a fresh outfit or step behind the curtain.`},[
+   ...Object.entries(OUTFITS).map(([id,o])=>({id:'outfit-'+id,label:'Dress in '+o.label,run:()=>{this.player.outfit=id;this.player.changing=false;this.closeOverlays();this.save();this.notify(o.label+' · looking lovely!');}})),
+   {id:'undress',label:undressed?'Clothes on the hook · changing privately':'Undress behind the curtain',disabled:undressed,run:()=>this.showCloset(true)}]);
+  document.querySelector('#speaker').textContent='STELLA’S CLOSET';
  }
  showPicnicGoal(){
   this.closeOverlays();this.input.reset();this.interactions.activate({message:picnicStatus(this)});
@@ -80,8 +88,11 @@ export class Game {
  interact(){
   if(this.farming.active)return;
   if(!this.mapPanel.hidden){this.mapPanel.hidden=true;return;}
-  if(this.interactions.open){this.interactions.close();return;}
+  if(this.interactions.open){this.player.changing=false;this.interactions.close();return;}
   const o=nearest(this.player,this.scene.objects);if(!o)return;
+  if(o.id==='closet'){this.showCloset();return;}
+  if(o.id==='bathroom-door'||o.id==='bathroom-exit'){this.scene=o.id==='bathroom-door'?this.bathroom:this.cabin;this.player.x=o.id==='bathroom-door'?159:334;this.player.y=o.id==='bathroom-door'?244:288;this.player.facing=0;this.player.targetFacing=0;this.player.stop();this.save();return;}
+  if(o.id==='bath'){this.interactions.activate({id:'bath',message:'A warm bath, a pink curtain and a quiet moment.'},[{id:'bath-private',label:'Bathe behind the curtain',run:()=>{this.player.changing=true;document.querySelector('#message').textContent='You slip out of your clothes behind the curtain, enjoy a warm bath, dry off and dress again before stepping out.';this.interactions.setChoices([{id:'bath-finish',label:'Dry off and get dressed',run:()=>{this.closeOverlays();this.save();this.notify('Fresh and cozy. ♡');}}]);}}]);return;}
   if(o.id==='door'||o.id==='home'){this.scene=o.id==='door'?this.garden:this.cabin;this.player.x=o.id==='door'?223:83;this.player.y=o.id==='door'?153:289;this.player.direction='down';this.player.facing=0;this.player.targetFacing=0;this.player.stop();this.save();return;}
   if(o.id==='gate'){
    if(o.open&&overlaps(feet(this.player.x,this.player.y),{x:o.x,y:o.y,w:o.w,h:o.h})){this.interactions.activate({message:'Take a step away from the opening so the gate can close.'});return;}
@@ -111,6 +122,7 @@ export class Game {
     this.notify(message+(rewards.length?` · ${rewards[0].title} unlocked! Bag → Decorate`:''));
    }
   }
+  if(!this.interactions.open||!['closet','bath'].includes(this.interactions.active?.id))this.player.changing=false;
   this.player.activity=this.farming.active;
   for(const id of ['help','bag','map-button','journal','pace','world-clock','interact'])document.getElementById(id).disabled=!!this.farming.active;
   this.toastTime=Math.max(0,this.toastTime-dt);document.querySelector('#toast').hidden=this.toastTime===0;
@@ -122,10 +134,10 @@ export class Game {
   if(this.started){this.saveTimer+=dt;if(this.saveTimer>=5){this.saveTimer=0;this.save();}}
   const clockButton=document.querySelector('#world-clock');clockButton.textContent=this.clock.label+(this.clock.paused?' · paused':'');clockButton.setAttribute('aria-pressed',String(this.clock.paused));
   const pace=document.querySelector('#pace');pace.textContent=this.running?'Jog':'Walk';pace.setAttribute('aria-pressed',String(this.running));
-  const region=this.scene.id==='cabin'?'HOME':this.player.x>570?(this.player.y>390?'PICNIC CLEARING':'FLOWER MEADOW'):this.player.x>470?'PINE TRAIL':'GARDEN';
-  document.querySelector('.location small').textContent=region+' · V0.13';
+  const region=this.scene.id==='bathroom'?'BATHROOM':this.scene.id==='cabin'?'HOME':this.player.x>570?(this.player.y>390?'PICNIC CLEARING':'FLOWER MEADOW'):this.player.x>470?'PINE TRAIL':'GARDEN';
+  document.querySelector('.location small').textContent=region+' · V0.14';
   this.interactions.update(dt);const near=this.started&&!blocked?nearest(this.player,this.scene.objects):null;
-  document.querySelector('#hint').textContent=near?`♡ ${near.type==='plot'||near.id==='gate'?near.message:near.id==='door'?'Explore the garden':near.id==='home'?'Go inside':near.id==='luna'?'Say hello to Luna':near.id==='seeds'?'Free strawberry seeds':near.id==='flowers'?'Pick a meadow flower':'Enjoy a little moment'}`:'';
+  document.querySelector('#hint').textContent=near?`♡ ${near.type==='plot'||near.id==='gate'?near.message:near.id==='door'?'Explore the garden':near.id==='home'?'Go inside':near.id==='closet'?'Change clothes':near.id==='bathroom-door'?'Visit the bathroom':near.id==='bathroom-exit'?'Return to the cabin':near.id==='luna'?'Say hello to Luna':near.id==='seeds'?'Free strawberry seeds':near.id==='flowers'?'Pick a meadow flower':'Enjoy a little moment'}`:'';
   document.querySelector('#hint').hidden=this.toastTime>0||!!this.farming.active;
   document.querySelector('#interact').classList.toggle('near',!!near);document.querySelector('#activity').textContent=this.farming.active?.label||(near?'A little moment awaits':'Make yourself at home');
   this.sound.update(dt,this,this.interactions.open||!this.mapPanel.hidden);

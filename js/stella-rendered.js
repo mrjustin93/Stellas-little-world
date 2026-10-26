@@ -1,3 +1,4 @@
+import {OUTFITS,outfitId,tintClothes} from './wardrobe.js';
 // Sixteen rendered key views, aligned using inspected silhouette bounds.
 // Thirty-two facing steps blend the key views; gait is animated at runtime.
 import {StellaAtlas} from './stella.js';
@@ -7,7 +8,7 @@ import {activityRig,paintHeldProp,paintActivityGround,paintActivityEffects} from
 import {paintLeg,paintArm} from './limbs.js';
 import {paintShoe} from './shoes.js';
 export class RenderedStella {
- constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.bodies=[];this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
+ constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.bodies=[];this.outfits={};this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
  }
  prepare(){try{
@@ -23,7 +24,13 @@ export class RenderedStella {
    bg.beginPath();points.forEach(([x,y],n)=>n?bg.lineTo(x,y):bg.moveTo(x,y));bg.closePath();bg.clip();bg.drawImage(c,0,0);this.bodies.push(body);
   }this.ready=true;
  }catch{this.ready=false;}}
+ bodyFor(index,id){
+  id=outfitId(id);if(id==='rose')return this.bodies[index];
+  const key=id+index;if(!this.outfits[key]){const c=document.createElement('canvas');c.width=160;c.height=320;const g=c.getContext('2d');g.drawImage(this.bodies[index],0,0);const pixels=g.getImageData(0,0,160,320);tintClothes(pixels.data,id);g.putImageData(pixels,0,0);this.outfits[key]=c;}return this.outfits[key];
+ }
  draw(a,p,pose,t){
+  if(p.changing){const g=a.g;a.shadow(p.x,p.y,16,3);a.line([[p.x-18,p.y],[p.x-18,p.y-67],[p.x+18,p.y-67],[p.x+18,p.y]],'#ac8c69',2);a.round(p.x-17,p.y-65,34,62,a.gradient(p.x,p.y-65,62,'#f5ccdc','#bd8ba8'),3);for(let i=-12;i<15;i+=7)a.line([[p.x+i,p.y-64],[p.x+i,p.y-5]],'#fff0df55',1);if(p.carryingLuna)a.bear(p.x+25,p.y,.45);return;}
+  const palette=OUTFITS[outfitId(p.outfit)].colors;
   const activity=p.activity,carrying=p.carryingLuna===true;
   const g=a.g,angle=activity?.facing??(pose?0:p.facing??0),index=nearestFacing(angle);
   const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),rig=activityRig(p.gait,blend,jog,angle,activity,carrying&&!pose);
@@ -41,13 +48,13 @@ export class RenderedStella {
   }
   const arms=[...rig.arms].sort((a,b)=>a.shoulder.depth-b.shoulder.depth);
   const behind=arm=>arm.shoulder.depth< -6||Math.cos(angle)<-.85;
-  for(const arm of arms)if(behind(arm))paintArm(a,arm);
+  for(const arm of arms)if(behind(arm))paintArm(a,arm,palette);
   if(Math.cos(angle)<0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   g.save();g.translate(rig.body.x,rig.body.y);
   if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);
-  g.drawImage(this.bodies[index],-80,-196);g.restore();
+  g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
   if(Math.cos(angle)>=0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
-  for(const arm of arms)if(!behind(arm))paintArm(a,arm);
+  for(const arm of arms)if(!behind(arm))paintArm(a,arm,palette);
   g.restore();
   // Activity props use the same character scale and foot anchor as locomotion.
   g.save();g.translate(p.x,p.y);g.scale(62/76,62/76);
