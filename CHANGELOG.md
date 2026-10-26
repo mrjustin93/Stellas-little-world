@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.16 — Stella appearance polish
+
+- Replaced boxy clothing silhouettes with curved shoulders, waist and hems, soft material shading, fabric folds, seams, pockets and trim.
+- Restored rendered source detail to hoodie and shorts layers, recolored per selection in a bounded cache. Front/back clothing details now follow facing.
+- Rounded limb contours and softened joint joins; refined shoe shading while preserving compact dimensions and existing gait.
+- Preserved the reference face, hair, all clothing selections, saved progress and controls.
+
+
 ## 0.15 — Dressing room and mix-and-match wardrobe
 
 - Closet opens a separate full-screen dressing room with a large rotating Stella preview, category tabs, draft selections, Apply, Cancel and Reset. Movement and time pause while choosing.

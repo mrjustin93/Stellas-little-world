@@ -133,7 +133,7 @@ export class Game {
   const clockButton=document.querySelector('#world-clock');clockButton.textContent=this.clock.label+(this.clock.paused?' · paused':'');clockButton.setAttribute('aria-pressed',String(this.clock.paused));
   const pace=document.querySelector('#pace');pace.textContent=this.running?'Jog':'Walk';pace.setAttribute('aria-pressed',String(this.running));
   const region=this.scene.id==='bathroom'?'BATHROOM':this.scene.id==='cabin'?'HOME':this.player.x>570?(this.player.y>390?'PICNIC CLEARING':'FLOWER MEADOW'):this.player.x>470?'PINE TRAIL':'GARDEN';
-  document.querySelector('.location small').textContent=region+' · V0.15';
+  document.querySelector('.location small').textContent=region+' · V0.16';
   this.interactions.update(dt);const near=this.started&&!blocked?nearest(this.player,this.scene.objects):null;
   document.querySelector('#hint').textContent=near?`♡ ${near.type==='plot'||near.id==='gate'?near.message:near.id==='door'?'Explore the garden':near.id==='home'?'Go inside':near.id==='closet'?'Change clothes':near.id==='bathroom-door'?'Visit the bathroom':near.id==='bathroom-exit'?'Return to the cabin':near.id==='luna'?'Say hello to Luna':near.id==='seeds'?'Free strawberry seeds':near.id==='flowers'?'Pick a meadow flower':'Enjoy a little moment'}`:'';
   document.querySelector('#hint').hidden=this.toastTime>0||!!this.farming.active;
