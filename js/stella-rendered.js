@@ -1,3 +1,5 @@
+import {restoreClothes,clothingItems} from './clothing.js';
+import {fabric,paintClothedBody,paintClothingLeg,paintAccessories} from './clothing-art.js';
 import {OUTFITS,outfitId,tintClothes} from './wardrobe.js';
 // Sixteen rendered key views, aligned using inspected silhouette bounds.
 // Thirty-two facing steps blend the key views; gait is animated at runtime.
@@ -30,7 +32,9 @@ export class RenderedStella {
  }
  draw(a,p,pose,t){
   if(p.changing){const g=a.g;a.shadow(p.x,p.y,16,3);a.line([[p.x-18,p.y],[p.x-18,p.y-67],[p.x+18,p.y-67],[p.x+18,p.y]],'#ac8c69',2);a.round(p.x-17,p.y-65,34,62,a.gradient(p.x,p.y-65,62,'#f5ccdc','#bd8ba8'),3);for(let i=-12;i<15;i+=7)a.line([[p.x+i,p.y-64],[p.x+i,p.y-5]],'#fff0df55',1);if(p.carryingLuna)a.bear(p.x+25,p.y,.45);return;}
-  const palette=OUTFITS[outfitId(p.outfit)].colors;
+  const items=p.clothes?clothingItems(restoreClothes(p.clothes,p.outfit)):null;
+  const palette=items?fabric(items.top.color):OUTFITS[outfitId(p.outfit)].colors;
+  const sleeve=items?(items.top.style==='tank'?'bare':items.top.style==='tee'||items.top.style==='dress'?'tee':'long'):'long';
   const activity=p.activity,carrying=p.carryingLuna===true;
   const g=a.g,angle=activity?.facing??(pose?0:p.facing??0),index=nearestFacing(angle);
   const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),rig=activityRig(p.gait,blend,jog,angle,activity,carrying&&!pose);
@@ -44,17 +48,18 @@ export class RenderedStella {
   a.shadow(p.x,p.y,9,2.8);g.save();g.translate(p.x,p.y);g.scale(SCALE.character,SCALE.character);g.translate(-80,-312);
   for(const leg of rig.legs)a.oval(leg.ground.x,leg.ground.y+11,7.5-leg.step.lift*1.5,1.7,leg.step.contact||blend<.05?'#4b42312b':'#4b423113');
   for(const leg of [...rig.legs].sort((a,b)=>a.hip.depth-b.hip.depth||a.foot.depth-b.foot.depth)){
-   paintLeg(a,leg,24);paintShoe(a,leg.foot,angle,leg.step.roll,blend);
+   paintLeg(a,leg,24,items?.shoes.style!=='bare');if(items)paintClothingLeg(a,leg,items.bottom);paintShoe(a,leg.foot,angle,leg.step.roll,blend,items?.shoes);
   }
   const arms=[...rig.arms].sort((a,b)=>a.shoulder.depth-b.shoulder.depth);
   const behind=arm=>arm.shoulder.depth< -6||Math.cos(angle)<-.85;
-  for(const arm of arms)if(behind(arm))paintArm(a,arm,palette);
+  for(const arm of arms)if(behind(arm))paintArm(a,arm,palette,sleeve);
   if(Math.cos(angle)<0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   g.save();g.translate(rig.body.x,rig.body.y);
   if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);
-  g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
+  if(items){g.translate(-80,-196);paintClothedBody(a,this.views[index],angle,items);}else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
   if(Math.cos(angle)>=0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
-  for(const arm of arms)if(!behind(arm))paintArm(a,arm,palette);
+  for(const arm of arms)if(!behind(arm))paintArm(a,arm,palette,sleeve);
+  if(items)paintAccessories(a,rig,angle,items);
   g.restore();
   // Activity props use the same character scale and foot anchor as locomotion.
   g.save();g.translate(p.x,p.y);g.scale(62/76,62/76);

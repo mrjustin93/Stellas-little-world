@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.15 — Dressing room and mix-and-match wardrobe
+
+- Closet opens a separate full-screen dressing room with a large rotating Stella preview, category tabs, draft selections, Apply, Cancel and Reset. Movement and time pause while choosing.
+- Undress switches to an opaque white tank top and white briefs. Choose briefs, hipsters or boyshorts in white, pink or lilac.
+- 69 catalogue choices across tops/dresses, bottoms, underwear, footwear, hats/hair accessories, necklaces, bracelets/watches and earrings. Selected pieces appear in gameplay and save independently.
+- Added original layered clothing art around the existing character rig and preserved Stella’s reference face and hair. Older three-color outfits migrate to matching pieces.
+
+
 ## 0.14 — Closet and bathroom
 
 - Added a cabin closet with rose, mint and lavender lounge sets. Undress behind a changing curtain and choose an outfit to dress; closing the curtain menu restores the worn outfit.
