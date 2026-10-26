@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.17 — Every-item closet review
+
+- Visually reviewed all 69 catalogue choices in the actual closet preview, front/profile/back. Added repeatable labelled review-sheet capture.
+- Corrected side-view waist alignment, removed shorts-like sections from trousers/leggings, distinguished their fit, and removed jeans details from boyshorts.
+- Recolored rendered hoodie/shorts shadows consistently, refined hats, and made bracelets follow wrist angle and depth. A watch is worn on one wrist. Household poses respect sleeve colors.
+- Added high-density preview rendering and an underwear inspection toggle that preserves the selected outer outfit.
+
+
 ## 0.16.1 — Appearance review fixes
 
 - Dresses keep their skirt layer with every bottoms and underwear selection.
