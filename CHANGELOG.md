@@ -1,5 +1,12 @@
 # Stella’s Little World
 
+## 0.13.1 — Watering animation fix
+
+- Anchor the can handle to Stella’s working hand and ease its tilt through pouring and recovery. Mirror the can and spout together for left-facing views.
+- Draw the stream behind Stella when she faces away, while keeping splashes visible on the soil. Water no longer paints over her back and legs.
+- Keep the stream attached to the tilted nozzle and preserve crop timing and inventory.
+
+
 ## 0.13 — A picnic wish and gentle sounds
 
 - Crop beds show water/ripe labels and growth bars; nearby beds show remaining game time and clock-pause status.

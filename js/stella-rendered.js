@@ -28,6 +28,7 @@ export class RenderedStella {
   const g=a.g,angle=activity?.facing??(pose?0:p.facing??0),index=nearestFacing(angle);
   const blend=pose?0:p.motion??(p.walking?1:0),jog=isJogging(p.speed),rig=activityRig(p.gait,blend,jog,angle,activity,carrying&&!pose);
   paintActivityGround(a,p,activity,carrying);
+  if(activity?.kind==='water'&&Math.cos(angle)<0)paintActivityEffects(a,p,rig,activity,angle,'stream');
   if(carrying&&!activity&&pose&&pose!=='hug')a.bear(p.x-12,p.y-1,.45);
   if(!this.ready){
    g.save();g.translate(p.x,p.y);g.scale(62/64,62/64);this.fallback.draw(a,{...p,x:0,y:0,facing:angle,walking:activity?false:p.walking},pose,t);g.restore();
@@ -60,7 +61,7 @@ export class RenderedStella {
   if(!p.activity)return;
   const activity=p.activity,angle=activity.facing??p.facing??0;
   const rig=activityRig(p.gait,0,isJogging(p.speed),angle,activity,p.carryingLuna===true);
-  paintActivityEffects(a,p,rig,activity,angle);
+  paintActivityEffects(a,p,rig,activity,angle,activity.kind==='water'&&Math.cos(angle)<0?'splash':'all');
  }
  portrait(canvas){if(!this.ready)return;const g=canvas.getContext('2d');g.clearRect(0,0,128,128);const gradient=g.createLinearGradient(0,0,128,128);gradient.addColorStop(0,'#fae4d2');gradient.addColorStop(1,'#e9b9cc');g.fillStyle=gradient;g.fillRect(0,0,128,128);g.drawImage(this.views[0],28,4,104,105,0,0,128,128);}
 }
