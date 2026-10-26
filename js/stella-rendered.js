@@ -19,9 +19,23 @@ export class RenderedStella {
    g.drawImage(keys[left],0,0);if(i%2){g.globalCompositeOperation='copy';g.globalAlpha=.5;g.drawImage(keys[left],0,0);g.globalCompositeOperation='lighter';g.drawImage(keys[right],0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;}
    this.views.push(c);
    const head=document.createElement('canvas');head.width=160;head.height=320;const hg=head.getContext('2d');hg.drawImage(c,0,0);
-   // The turnaround's hoodie collar overlaps the bottom of the head crop.
-   // Strip only its pink pixels below the chin; leave face and hair untouched.
-   const collar=hg.getImageData(0,88,160,16);for(let n=0;n<collar.data.length;n+=4){const r=collar.data[n],v=collar.data[n+1],b=collar.data[n+2];if(r>v*1.08&&b>v*1.02&&r>b*.9)collar.data[n+3]=0;}hg.putImageData(collar,0,88);this.heads.push(head);
+   // Keep the reference face and hair, then isolate the exposed neck rather
+   // than pasting a rectangular slice of the original hoodie under the chin.
+   const neckX=80+Math.sin(i*Math.PI/16)*7,collar=hg.getImageData(0,88,160,25);
+   let weight=0,weightedX=0;
+   const skin=(r,v,b)=>r>v+14&&v>b+6&&r>b+26;
+   for(let y=5;y<11;y++)for(let x=55;x<108;x++){const n=(y*160+x)*4;if(skin(...collar.data.slice(n,n+3))){const alpha=collar.data[n+3];weightedX+=x*alpha;weight+=alpha;}}
+   const sourceX=weight?weightedX/weight:neckX;
+   head.neckX=sourceX;
+   for(let y=0;y<25;y++)for(let x=0;x<160;x++){
+    const n=(y*160+x)*4,r=collar.data[n],v=collar.data[n+1],b=collar.data[n+2];
+    if(y<7){if((r>v+5&&b>v-5)||Math.abs(x-sourceX)>23-y*.6)collar.data[n+3]=0;continue;}
+    const t=(y-7)/18,cx=sourceX+(neckX-sourceX)*t,radius=18-11*t;
+    if(!skin(r,v,b)||Math.abs(x-cx)>radius)collar.data[n+3]=0;
+    else if(y>18)collar.data[n+3]*=(24-y)/6;
+   }
+   hg.putImageData(collar,0,88);
+   this.heads.push(head);
    // Cache a torso/head mask once. Moving sleeves and hands are connected
    // geometry, so no rectangular strips of the torso swing with the arms.
    const body=document.createElement('canvas');body.width=160;body.height=320;
@@ -63,15 +77,24 @@ export class RenderedStella {
   for(const leg of [...rig.legs].sort((a,b)=>a.hip.depth-b.hip.depth||a.foot.depth-b.foot.depth)){
    const covered=items&&['trousers','leggings'].includes(items.bottom.style);if(!covered)paintLeg(a,leg,26,items?.shoes.style!=='bare');if(items)paintClothingLeg(a,leg,items.bottom);paintShoe(a,leg.foot,angle,leg.step.roll,blend,items?.shoes);
   }
-  const arms=[...rig.arms].sort((a,b)=>a.shoulder.depth-b.shoulder.depth);
+  // Fit shoulder caps to the rendered torso neckline. The torso artwork has
+  // a fixed shoulder plane; projecting its arm caps above/below that plane
+  // leaves floating shoulders and slipping straps in profile. Elbows, wrists
+  // and hand/prop anchors keep their anatomical rig positions.
+  const shoulderLine=rig.body.y-86*(rig.bodyAxis?.y??1);
+  const fittedArms=rig.arms.map((arm,index)=>({...arm,index,shoulder:{...arm.shoulder,y:shoulderLine}}));
+  const arms=[...fittedArms].sort((a,b)=>a.shoulder.depth-b.shoulder.depth);
   const behind=arm=>arm.shoulder.depth< -6||Math.cos(angle)<-.85;
-  for(const arm of arms)if(behind(arm)){paintArm(a,arm,palette,sleeve);if(items)paintWristAccessory(a,arm,items.wrist,rig.arms.indexOf(arm));}
+  for(const arm of arms)if(behind(arm)){paintArm(a,arm,palette,sleeve);if(items)paintWristAccessory(a,arm,items.wrist,arm.index);}
   if(Math.cos(angle)<0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   g.save();g.translate(rig.body.x,rig.body.y);
   if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);
-  if(items){g.translate(-80,-196);paintClothedBody(a,this.heads[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')});}else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
+  if(items){
+   const axis=rig.bodyAxis||{x:0,y:1},shoulders=fittedArms.map(arm=>{const y=(arm.shoulder.y-rig.body.y)/axis.y;return {x:80+arm.shoulder.x-rig.body.x-axis.x*y,y:196+y};});
+   g.translate(-80,-196);paintClothedBody(a,this.heads[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')},shoulders);
+  }else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
   if(Math.cos(angle)>=0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
-  for(const arm of arms)if(!behind(arm)){paintArm(a,arm,palette,sleeve);if(items)paintWristAccessory(a,arm,items.wrist,rig.arms.indexOf(arm));}
+  for(const arm of arms)if(!behind(arm)){paintArm(a,arm,palette,sleeve);if(items)paintWristAccessory(a,arm,items.wrist,arm.index);}
   if(items)paintAccessories(a,rig,angle,items);
   g.restore();
   // Activity props use the same character scale and foot anchor as locomotion.

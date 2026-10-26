@@ -1,4 +1,4 @@
-import {drawLimb} from './limbs.js';
+import {drawLimb,drawJointedLimb} from './limbs.js';
 export const visibleBottom=items=>items.top.style==='dress'?{...items.top,style:'skirt'}:items.bottom.style==='underwear'?items.underwear:items.bottom;
 export function earPositions(angle){
  const side=Math.sin(angle),front=Math.cos(angle);if(front<-.4)return [];
@@ -17,14 +17,19 @@ function torsoPath(g,cx,w,top=108,hem=177){
  g.moveTo(cx-w+7,top);g.quadraticCurveTo(cx-w-5,top+3,cx-w,top+24);g.bezierCurveTo(cx-w+2,148,80-w+7,158,80-w+5,hem);g.quadraticCurveTo(80,hem+4,80+w-5,hem);g.bezierCurveTo(80+w-7,158,cx+w-2,148,cx+w,top+24);g.quadraticCurveTo(cx+w+5,top+3,cx+w-7,top);
 }
 // Sculpted silhouettes, opaque fabric and source shading share the same anchors.
-export function paintClothedBody(a,image,angle,items,textures={}){
+export function paintClothedBody(a,image,angle,items,textures={},shoulders=null){
  const g=a.g,profile=Math.abs(Math.sin(angle)),front=Math.cos(angle),cx=80+Math.sin(angle)*7,w=30-11*profile,top=items.top,bottom=items.bottom,under=items.underwear;
- a.round(cx-7,91,14,27,a.gradient(cx,91,27,'#e8ae91','#f6cba9'),5);
+ const nx=image.neckX??cx;
+ surface(g,p=>{p.moveTo(nx-8,89);p.lineTo(nx+8,89);p.bezierCurveTo(nx+8,101,cx+8,107,cx+10,118);p.quadraticCurveTo(cx,121,cx-10,118);p.bezierCurveTo(cx-8,107,nx-8,101,nx-8,89);},a.gradient(nx,89,30,'#e8ae91','#f6cba9'));
  surface(g,p=>{torsoPath(p,cx,w-1,103,191);},material(g,cx,w,'#f3c6a5'));
  a.oval(cx,106,7,2,'#c88f7c44');
  if(top.style==='tank'){
   surface(g,p=>{p.moveTo(cx-w+6,123);p.quadraticCurveTo(cx,137,cx+w-6,123);p.bezierCurveTo(cx+w-3,144,80+w-9,158,80+w-6,175);p.quadraticCurveTo(80,179,80-w+6,175);p.bezierCurveTo(80-w+9,158,cx-w+3,144,cx-w+6,123);},material(g,cx,w,top.color),shade(top.color,-.15));
-  for(const sign of [-1,1])a.line([[cx+sign*(w-7),126],[cx+sign*(w-9),110]],shade(top.color,.1),6);
+  for(const sign of [-1,1]){
+   const shoulder=shoulders?.[sign<0?0:1],x=shoulder?shoulder.x+(cx-shoulder.x)*.18:cx+sign*(w-9),y=shoulder?.y??110;
+   // Straps follow the actual shoulder height as the far shoulder turns away.
+   a.line([[cx+sign*(w-7)*front,126],[x,y]],shade(top.color,.1),6);
+  }
   a.line([[80-w+8,173],[80+w-8,173]],shade(top.color,-.12),1);
   a.line([[cx-w+10,149],[cx-w+12,162]],'#ffffff66',1);
  }else{
@@ -68,7 +73,7 @@ export function paintClothedBody(a,image,angle,items,textures={}){
  }
  if(textures.bottom&&top.style!=='dress')g.drawImage(textures.bottom,0,178,160,31,-Math.sin(angle)*7,178,160,31);
  // Keep Stella's original face and pixie-cut texture clean at the neck join.
- g.drawImage(image,0,0,160,95,0,0,160,95);g.drawImage(image,cx-12,95,24,8,cx-12,95,24,8);
+ g.drawImage(image,0,0,160,113,0,0,160,113);
  if(items.neck.style!=='none'&&front>.05){
   a.line([[cx-9,107],[cx-5,118],[cx+5,118],[cx+9,107]],items.neck.color,1.2);
   if(items.neck.style==='pearl')for(let i=-2;i<=2;i++)a.oval(cx+i*3.5,117+Math.cos(i)*2,1.8,1.8,'#fff8e6');
@@ -77,7 +82,7 @@ export function paintClothedBody(a,image,angle,items,textures={}){
 }
 export function paintClothingLeg(a,rig,item){
  if(!['trousers','leggings'].includes(item.style))return;
- const tight=item.style==='leggings',widths=tight?[24,15,11]:[27,20,17];drawLimb(a.g,rig.hip,rig.knee,widths[0],widths[1],fabric(item.color));drawLimb(a.g,rig.knee,rig.foot,widths[1],widths[2],fabric(item.color));
+ const tight=item.style==='leggings',widths=tight?[24,15,11]:[27,20,17];drawJointedLimb(a.g,rig.hip,rig.knee,rig.foot,widths,fabric(item.color));
  if(!tight){const cuff={x:rig.foot.x+(rig.knee.x-rig.foot.x)*.08,y:rig.foot.y+(rig.knee.y-rig.foot.y)*.08};drawLimb(a.g,cuff,rig.foot,17.5,17.5,fabric(shade(item.color,-.08)));}
 }
 export function paintAccessories(a,rig,angle,items){
