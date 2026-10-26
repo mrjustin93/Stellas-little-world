@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {activityRig,activityEnvelope,waterSpout} from '../js/activity-art.js';
+import {activityRig,activityEnvelope,waterSpout,waterCanTransform} from '../js/activity-art.js';
 import {walkingRig,RIG} from '../js/skeleton.js';
 
 const length=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
@@ -62,7 +62,14 @@ test('the watering can sits beside the torso and its stream starts at the tilted
   for(const arm of rig.arms)assert.ok(!arm.clamped,'both hands can reach the shifted can');
  }
  const angle=Math.PI/3,rig=activityRig(0,0,false,angle,{kind:'water',progress:.5}),tip=waterSpout(rig,angle);
- const rotation=Math.sin(angle)*.18,x=Math.sin(angle)*42,y=Math.cos(angle)*13-9;
- close(tip.x-rig.prop.x,x*Math.cos(rotation)-y*Math.sin(rotation));
- close(tip.y-rig.prop.y,x*Math.sin(rotation)+y*Math.cos(rotation));
+ const can=waterCanTransform(rig,angle),x=Math.abs(Math.sin(angle))*42*can.mirror,y=Math.cos(angle)*13-9;
+ close(tip.x-can.x,x*Math.cos(can.rotation)-y*Math.sin(can.rotation));
+ close(tip.y-can.y,x*Math.sin(can.rotation)+y*Math.cos(can.rotation));
+});
+test('watering handle stays on the hand through tilt and mirroring',()=>{
+ for(let d=0;d<32;d++)for(let frame=1;frame<60;frame++){
+  const angle=d*Math.PI/16,r=activityRig(0,0,false,angle,{kind:'water',progress:frame/60}),c=waterCanTransform(r,angle),x=-13*c.mirror,y=-14;
+  close(c.x+x*Math.cos(c.rotation)-y*Math.sin(c.rotation),r.arms[1].hand.x);
+  close(c.y+x*Math.sin(c.rotation)+y*Math.cos(c.rotation),r.arms[1].hand.y);
+ }
 });

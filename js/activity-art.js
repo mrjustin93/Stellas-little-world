@@ -76,22 +76,31 @@ export function paintHeldProp(a,rig,activity,carrying,angle){
  if(!rig.prop)return;
  const {x,y}=rig.prop,g=a.g;
  if(activity?.kind==='water'){
-  g.save();g.globalAlpha=rig.actionWeight;g.translate(x,y);g.rotate(Math.sin(angle)*.18*rig.actionWeight);
+  const can=waterCanTransform(rig,angle);
+  g.save();g.globalAlpha=rig.actionWeight;g.translate(can.x,can.y);g.rotate(can.rotation);g.scale(can.mirror,1);
   a.oval(-13,-14,11,16,'#638b8e');a.oval(-13,-14,6,11,'#d8e6d7');
   a.round(-17,-21,35,29,a.gradient(-17,-21,32,'#b9d9cd','#6a9fa0'),7);
   a.oval(0,-21,17,5,'#d7e8d6');a.oval(0,-21,11,3,'#668d88');
-  const dx=Math.sin(angle)*33,dy=Math.cos(angle)*13;
-  a.line([[11,0],[dx,dy-8],[dx+Math.sin(angle)*9,dy-9]],'#84b2ad',7);
-  a.oval(dx+Math.sin(angle)*9,dy-9,5,3,'#d6e5d4');
+  const dx=Math.abs(Math.sin(angle))*33,dy=Math.cos(angle)*13;
+  a.line([[11,0],[dx,dy-8],[dx+Math.abs(Math.sin(angle))*9,dy-9]],'#84b2ad',7);
+  a.oval(dx+Math.abs(Math.sin(angle))*9,dy-9,5,3,'#d6e5d4');
   a.flower(0,-5,'#f3c1d0');g.restore();
  }else if(carrying&&!activity)a.bear(x,y,2.2);
 }
 
 function sourceToWorld(p,point){return {x:p.x+(point.x-80)*SCALE.character,y:p.y+(point.y-312)*SCALE.character};}
 
+export function waterCanTransform(rig,angle){
+ const mirror=Math.sin(angle)<0?-1:1;
+ const pour=smooth((rig.progress-.16)/.14)*(1-smooth((rig.progress-.72)/.14));
+ const rotation=Math.sin(angle)*.48*pour;
+ // Rotate around the handle, which stays attached to the working hand.
+ const grip={x:-13*mirror,y:-14},hand=rig.arms[1].hand;
+ return {x:hand.x-grip.x*Math.cos(rotation)+grip.y*Math.sin(rotation),y:hand.y-grip.x*Math.sin(rotation)-grip.y*Math.cos(rotation),rotation,mirror,pour};
+}
 export function waterSpout(rig,angle){
- const rotation=Math.sin(angle)*.18*rig.actionWeight,x=Math.sin(angle)*42,y=Math.cos(angle)*13-9;
- return {x:rig.prop.x+x*Math.cos(rotation)-y*Math.sin(rotation),y:rig.prop.y+x*Math.sin(rotation)+y*Math.cos(rotation)};
+ const c=waterCanTransform(rig,angle),x=Math.abs(Math.sin(angle))*42*c.mirror,y=Math.cos(angle)*13-9;
+ return {x:c.x+x*Math.cos(c.rotation)-y*Math.sin(c.rotation),y:c.y+x*Math.sin(c.rotation)+y*Math.cos(c.rotation)};
 }
 
 // Ground props share Stella's depth pass; particles get a separate overlay pass.
@@ -103,7 +112,7 @@ export function paintActivityGround(a,p,activity,carrying){
 
 // Draw after the world depth list so a bed cannot cover the stream or a seed
 // just because Stella is standing on its north side. The target stays fixed.
-export function paintActivityEffects(a,p,rig,activity,angle){
+export function paintActivityEffects(a,p,rig,activity,angle,waterPass='all'){
  if(!activity)return;
  const q=clamp(activity.progress),weight=activityEnvelope(q),kind=activity.kind;
  const target=activity.target||{x:p.x+Math.sin(angle)*18,y:p.y+Math.cos(angle)*18};
@@ -111,11 +120,11 @@ export function paintActivityEffects(a,p,rig,activity,angle){
  if(kind==='water'&&rig.prop&&q>.24&&q<.79){
   const spout=sourceToWorld(p,waterSpout(rig,angle));
   g.save();g.globalAlpha=weight*.8;
-  for(let i=0;i<9;i++){
+  if(waterPass!=='splash')for(let i=0;i<9;i++){
    const t=((q*4+i/9)%1),x=mix(spout.x,target.x,t),y=mix(spout.y,target.y,t)-Math.sin(Math.PI*t)*3;
    a.line([[x,y-1.5],[x+.2,y+1]],i%2?'#c5eff4':'#8bcedd',1.2);
   }
-  for(let i=0;i<3;i++)a.oval(target.x+(i-1)*3,target.y+Math.sin(q*35+i)*1.5,2,.6,'#c5e5e699');
+  if(waterPass!=='stream')for(let i=0;i<3;i++)a.oval(target.x+(i-1)*3,target.y+Math.sin(q*35+i)*1.5,2,.6,'#c5e5e699');
   g.restore();
  }
  if(kind==='plant'&&q>.4&&q<.72){
