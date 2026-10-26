@@ -10,7 +10,7 @@ import {activityRig,paintHeldProp,paintActivityGround,paintActivityEffects} from
 import {paintLeg,paintArm} from './limbs.js';
 import {paintShoe} from './shoes.js';
 export class RenderedStella {
- constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.bodies=[];this.outfits={};this.garments=new Map();this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
+ constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.heads=[];this.bodies=[];this.outfits={};this.garments=new Map();this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
  }
  prepare(){try{
@@ -18,6 +18,10 @@ export class RenderedStella {
   for(let i=0;i<32;i++){const c=document.createElement('canvas');c.width=160;c.height=320;const g=c.getContext('2d'),left=Math.floor(i/2),right=(left+1)%16;
    g.drawImage(keys[left],0,0);if(i%2){g.globalCompositeOperation='copy';g.globalAlpha=.5;g.drawImage(keys[left],0,0);g.globalCompositeOperation='lighter';g.drawImage(keys[right],0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;}
    this.views.push(c);
+   const head=document.createElement('canvas');head.width=160;head.height=320;const hg=head.getContext('2d');hg.drawImage(c,0,0);
+   // The turnaround's hoodie collar overlaps the bottom of the head crop.
+   // Strip only its pink pixels below the chin; leave face and hair untouched.
+   const collar=hg.getImageData(0,88,160,16);for(let n=0;n<collar.data.length;n+=4){const r=collar.data[n],v=collar.data[n+1],b=collar.data[n+2];if(r>v*1.08&&b>v*1.02&&r>b*.9)collar.data[n+3]=0;}hg.putImageData(collar,0,88);this.heads.push(head);
    // Cache a torso/head mask once. Moving sleeves and hands are connected
    // geometry, so no rectangular strips of the torso swing with the arms.
    const body=document.createElement('canvas');body.width=160;body.height=320;
@@ -36,7 +40,7 @@ export class RenderedStella {
   const c=document.createElement('canvas');c.width=160;c.height=320;const g=c.getContext('2d');g.drawImage(this.bodies[index],0,0);
   const p=g.getImageData(0,0,160,320),rgb=[1,3,5].map(i=>parseInt(item.color.slice(i,i+2),16));
   for(let i=160*100*4;i<p.data.length;i+=4){const r=p.data[i],v=p.data[i+1],b=p.data[i+2];if(r>v*1.08&&b>v*1.03&&r>b*.9){p.data[i]=Math.min(255,r*rgb[0]/234);p.data[i+1]=Math.min(255,v*rgb[1]/160);p.data[i+2]=Math.min(255,b*rgb[2]/192);}}
-  g.putImageData(p,0,0);if(this.garments.size>=64)this.garments.delete(this.garments.keys().next().value);this.garments.set(key,c);return c;
+  g.putImageData(p,0,0);if(part==='top'&&Math.cos(index*Math.PI/16)>.05)g.clearRect(80+Math.sin(index*Math.PI/16)*7-11,101,22,27);if(this.garments.size>=64)this.garments.delete(this.garments.keys().next().value);this.garments.set(key,c);return c;
  }
  draw(a,p,pose,t){
   if(p.changing){const g=a.g;a.shadow(p.x,p.y,16,3);a.line([[p.x-18,p.y],[p.x-18,p.y-67],[p.x+18,p.y-67],[p.x+18,p.y]],'#ac8c69',2);a.round(p.x-17,p.y-65,34,62,a.gradient(p.x,p.y-65,62,'#f5ccdc','#bd8ba8'),3);for(let i=-12;i<15;i+=7)a.line([[p.x+i,p.y-64],[p.x+i,p.y-5]],'#fff0df55',1);if(p.carryingLuna)a.bear(p.x+25,p.y,.45);return;}
@@ -64,7 +68,7 @@ export class RenderedStella {
   if(Math.cos(angle)<0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   g.save();g.translate(rig.body.x,rig.body.y);
   if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);
-  if(items){g.translate(-80,-196);paintClothedBody(a,this.views[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')});}else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
+  if(items){g.translate(-80,-196);paintClothedBody(a,this.heads[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')});}else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
   if(Math.cos(angle)>=0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   for(const arm of arms)if(!behind(arm))paintArm(a,arm,palette,sleeve);
   if(items)paintAccessories(a,rig,angle,items);
