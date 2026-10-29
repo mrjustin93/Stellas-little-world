@@ -15,3 +15,11 @@ test('character asset has an actual deformation skeleton and skin-weighted meshe
  for(const name of ['Head','Chest','UpperLegL','LowerLegR','UpperArmL'])assert(doc.nodes.some(n=>n.name===name));
  assert(doc.meshes.some(m=>m.primitives.some(p=>p.attributes.WEIGHTS_0!==undefined)));
 });
+test('refined character has an actual eyelid morph and stays within the mobile mesh budget',()=>{
+ const assets=fs.existsSync(path.join(root,'dist/stella.glb'))?'dist/':'';
+ const bytes=fs.readFileSync(path.join(root,assets+'stella.glb'));const doc=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());
+ assert(bytes.length<4*1024*1024,'character exceeds 4 MiB budget');
+ const vertices=doc.meshes.reduce((n,m)=>n+m.primitives.reduce((s,p)=>s+doc.accessors[p.attributes.POSITION].count,0),0);
+ assert(vertices<100000,'character exceeds 100k vertex budget');
+ assert(doc.meshes.some(m=>m.extras?.targetNames?.includes('Blink')&&m.primitives.some(p=>p.targets?.some(t=>t.POSITION!==undefined))),'missing actual eyelid deformation');
+});

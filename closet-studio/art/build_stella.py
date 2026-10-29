@@ -1,181 +1,251 @@
-"""Create an original stylized Stella mesh and deform rig in Blender. Reference is visual only."""
-import bpy, math, os
-from mathutils import Vector
+"""Refined Stella: CC0 MakeHuman anatomy adapted to the supplied visual reference.
+The source photograph is never used as a gameplay sprite or projected face.
+"""
+import bpy,json,math,os
+from pathlib import Path
+from mathutils import Vector,Quaternion
+from mathutils.bvhtree import BVHTree
 from math import sin,cos,pi
+ROOT=Path(__file__).resolve().parents[1];VENDOR=ROOT/'art/vendor';ASSETS=ROOT/'dist' if (ROOT/'dist').is_dir() else ROOT
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-def mat(name,color,rough=.55):
- m=bpy.data.materials.new(name);m.diffuse_color=(*color,1);m.use_nodes=True
- bs=m.node_tree.nodes.get('Principled BSDF');bs.inputs['Base Color'].default_value=(*color,1);bs.inputs['Roughness'].default_value=rough
- if name=='Skin':bs.inputs['Subsurface Weight'].default_value=.1
+def readobj(path):
+ v=[];groups={};group='default';uv=[];faces=[]
+ for line in open(path):
+  s=line.split()
+  if not s:continue
+  if s[0]=='v':v.append(Vector(tuple(map(float,s[1:4]))))
+  elif s[0]=='g':group=s[1]
+  elif s[0]=='f':
+   f=[int(t.split('/')[0])-1 for t in s[1:]];groups.setdefault(group,[]).append(f);faces.append(f)
+ return v,groups,faces
+raw,groups,_=readobj(VENDOR/'base.obj');original=[v.copy() for v in raw]
+for line in open(VENDOR/'female-young.target'):
+ s=line.split()
+ if len(s)==4 and s[0].isdigit():raw[int(s[0])]+=Vector(tuple(map(float,s[1:])))
+# A restrained lift at the mouth corners echoes the reference's relaxed expression.
+for v in raw:
+ if abs(v.x)<.32 and 6.16<v.y<6.44 and v.z>1.28:
+  v.y+=.045*(abs(v.x)/.32)**1.2*max(0,1-abs(v.y-6.30)/.15)
+rigdata=json.load(open(VENDOR/'rig.json'));weightdata=json.load(open(VENDOR/'weights.json'))['weights']
+bodyids=sorted({i for f in groups['body'] for i in f});floor=min(raw[i].y for i in bodyids);height=max(raw[i].y for i in bodyids)-floor;scale=3.2/height
+# More natural seven-head proportions and a slightly slimmer silhouette match the reference.
+def transform(v):
+ p=Vector((v.x*scale,-v.z*scale,(v.y-floor)*scale))
+ h=max(0,min(1,(p.z-2.68)/.18));p.x*=1+.08*h;p.y=-.08+(p.y+.08)*(1+.04*h);p.z+=(p.z-2.7)*.12*h
+ if p.z<2.35:p.x*=.94
+ return p
+verts=[transform(v) for v in raw]
+def joint(name):return sum((verts[i] for i in rigdata['joints'][name]),Vector())/len(rigdata['joints'][name])
+def point(bone,which='head'):return joint(rigdata['bones'][bone][which])
+def material(name,color,rough=.55):
+ m=bpy.data.materials.new(name);m.use_nodes=True;m.diffuse_color=(*color,1);p=m.node_tree.nodes.get('Principled BSDF');p.inputs['Base Color'].default_value=(*color,1);p.inputs['Roughness'].default_value=rough
+ if name=='Stella fair skin':p.inputs['Subsurface Weight'].default_value=.12
  return m
-skin=mat('Skin',(.72,.43,.29),.6);white=mat('Soft ivory cotton',(.91,.90,.86),.85)
-hair=mat('Honey blonde',(.43,.28,.105),.55);highlight=mat('Golden strands',(.65,.46,.22),.52)
-eyeWhite=mat('Warm eye white',(.9,.92,.90),.25);iris=mat('Cornflower blue',(.055,.26,.43),.3);pupil=mat('Pupils',(.008,.018,.025),.25)
-lips=mat('Rose lips',(.49,.20,.17),.7);brow=mat('Soft brows',(.26,.16,.07),.9);earmat=mat('Ear warmth',(.57,.28,.22),.8)
-objects=[];weights={}
-def finish(o,name,m,bone='Chest'):
- o.name=name;o.data.materials.append(m)
- if o.type=='MESH':
-  for p in o.data.polygons:p.use_smooth=True
-  objects.append(o);weights[o.name]=bone
+skin=material('Stella fair skin',(.71,.46,.36),.62);cloth=material('White soft cotton',(.89,.90,.91),.87)
+lips=material('Natural rose lips',(.47,.245,.215),.65);hair=material('Ash blonde roots',(.255,.20,.135),.67);hairlight=material('Sandy blonde layers',(.43,.34,.23),.62)
+white=material('Eye whites',(.82,.85,.84),.24);blue=material('Blue irises',(.045,.18,.30),.28);black=material('Pupils',(.003,.008,.013),.24);brow=material('Brows and lashes',(.19,.125,.075),.75)
+# Preserve the supplied skinning, collapsing helper/twist/facial bones onto the existing game rig.
+def mapping(name):
+ side='L' if name.endswith('.L') else 'R'
+ if name.startswith('upperarm'):return 'UpperArm'+side
+ if name.startswith('lowerarm'):return 'Forearm'+side
+ if name.startswith(('wrist','finger','thumb','metacarpal')):return 'Hand'+side
+ if name.startswith('upperleg'):return 'UpperLeg'+side
+ if name.startswith('lowerleg'):return 'LowerLeg'+side
+ if name.startswith(('foot','toe')):return 'Foot'+side
+ if name.startswith('neck'):return 'Neck'
+ if name.startswith(('shoulder','breast','clavicle')) or name in ['spine01','spine02']:return 'Chest'
+ if name.startswith(('spine','pelvis','root')):return 'Hips'
+ return 'Head'
+weights=[{} for _ in raw]
+for name,items in weightdata.items():
+ b=mapping(name)
+ for i,w in items:weights[i][b]=weights[i].get(b,0)+w
+armdata=bpy.data.armatures.new('Stella skeleton');rig=bpy.data.objects.new('StellaRig',armdata);bpy.context.collection.objects.link(rig);bpy.context.view_layer.objects.active=rig;rig.select_set(True);bpy.ops.object.mode_set(mode='EDIT')
+def bone(name,a,b,parent=None):
+ x=armdata.edit_bones.new(name);x.head=a;x.tail=b
+ if parent:x.parent=armdata.edit_bones[parent]
+hips=(point('upperleg01.L')+point('upperleg01.R'))/2
+bone('Hips',hips,point('spine02'));bone('Chest',point('spine02'),point('neck01'),'Hips');bone('Neck',point('neck01'),point('head'),'Chest');bone('Head',point('head'),point('head','tail'),'Neck')
+# MH left is positive X; game labels preserve their established anatomical sides.
+for side in ['L','R']:
+ bone('UpperArm'+side,point('upperarm01.'+side),point('lowerarm01.'+side),'Chest')
+ bone('Forearm'+side,point('lowerarm01.'+side),point('wrist.'+side),'UpperArm'+side)
+ bone('Hand'+side,point('wrist.'+side),point('wrist.'+side,'tail'),'Forearm'+side)
+ bone('UpperLeg'+side,point('upperleg01.'+side),point('lowerleg01.'+side),'Hips')
+ bone('LowerLeg'+side,point('lowerleg01.'+side),point('foot.'+side),'UpperLeg'+side)
+ bone('Foot'+side,point('foot.'+side),point('foot.'+side,'tail'),'LowerLeg'+side)
+bpy.ops.object.mode_set(mode='OBJECT')
+old_to_new={v:i for i,v in enumerate(bodyids)}
+mesh=bpy.data.meshes.new('Anatomical skin');mesh.from_pydata([verts[i] for i in bodyids],[],[[old_to_new[i] for i in f] for f in groups['body']]);mesh.update();body=bpy.data.objects.new('Stella skin',mesh);bpy.context.collection.objects.link(body);body.data.materials.append(skin);body.data.materials.append(lips)
+for p,f in zip(mesh.polygons,groups['body']):
+ c=sum((raw[i] for i in f),Vector())/len(f)
+ if 6.235<c.y<6.365 and c.z>1.33 and abs(c.x)<.30:p.material_index=1
+ p.use_smooth=True
+for i,old in enumerate(bodyids):
+ total=sum(weights[old].values()) or 1
+ for name,w in weights[old].items():
+  if w>.0001:(body.vertex_groups.get(name) or body.vertex_groups.new(name=name)).add([i],w/total,'REPLACE')
+mod=body.modifiers.new('Deform rig','ARMATURE');mod.object=rig
+# Lower the reference A-pose into a natural rest stance, baking it into both skin and rig.
+for side,sign in [('L',1),('R',-1)]:
+ for name,angle in [('UpperArm'+side,.60),('UpperLeg'+side,.095)]:
+  b=rig.pose.bones[name];basis=b.bone.matrix_local.to_quaternion();b.rotation_mode='QUATERNION';b.rotation_quaternion=basis.inverted()@Quaternion(Vector((0,1,0)),sign*angle)@basis
+bpy.context.view_layer.update();bpy.context.view_layer.objects.active=body;body.select_set(True);bpy.ops.object.modifier_apply(modifier=mod.name)
+bpy.context.view_layer.objects.active=rig;bpy.ops.object.mode_set(mode='POSE');bpy.ops.pose.armature_apply(selected=False);bpy.ops.object.mode_set(mode='OBJECT')
+# Body-surface clothing follows exactly the same weighted topology, avoiding clipping at the hips.
+def garment(name,predicate):
+ faces=[];ids=set()
+ for poly in body.data.polygons:
+  center=sum((body.data.vertices[i].co for i in poly.vertices),Vector())/len(poly.vertices)
+  torso=0
+  for i in poly.vertices:
+   torso+=sum(g.weight for g in body.data.vertices[i].groups if body.vertex_groups[g.group].name.startswith(('Hips','Chest','UpperLeg')))
+  if predicate(center) and torso/len(poly.vertices)>.75:faces.append(list(poly.vertices));ids.update(poly.vertices)
+ ids=sorted(ids);remap={v:i for i,v in enumerate(ids)};vs=[body.data.vertices[i].co+body.data.vertices[i].normal*.009 for i in ids]
+ m=bpy.data.meshes.new(name);m.from_pydata(vs,[],[[remap[i] for i in f] for f in faces]);m.update();o=bpy.data.objects.new(name,m);bpy.context.collection.objects.link(o);m.materials.append(cloth)
+ for poly in m.polygons:poly.use_smooth=True
+ for i,old in enumerate(ids):
+  for g in body.data.vertices[old].groups:
+   n=body.vertex_groups[g.group].name;(o.vertex_groups.get(n) or o.vertex_groups.new(name=n)).add([i],g.weight,'REPLACE')
+ sub=o.modifiers.new('Soft fabric topology','SUBSURF');sub.levels=1;bpy.context.view_layer.objects.active=o;o.select_set(True);bpy.ops.object.modifier_apply(modifier=sub.name)
+ shrink=o.modifiers.new('Fabric fit','SHRINKWRAP');shrink.target=body;shrink.wrap_method='NEAREST_SURFACEPOINT';shrink.offset=.010;bpy.ops.object.modifier_apply(modifier=shrink.name)
+ solid=o.modifiers.new('Fabric edge thickness','SOLIDIFY');solid.thickness=.004;bpy.ops.object.modifier_apply(modifier=solid.name)
  return o
-def sphere(name,loc,scale,m,bone='Chest',segments=24,rings=16):
- bpy.ops.mesh.primitive_uv_sphere_add(segments=segments,ring_count=rings,location=loc);o=bpy.context.object;o.scale=scale
- bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
- return finish(o,name,m,bone)
-def loft(name,rings,m,bone='Chest',segments=32):
- verts=[];faces=[]
- for cx,cy,z,rx,ry in rings:
-  for i in range(segments):a=i*2*pi/segments;verts.append((cx+rx*cos(a),cy+ry*sin(a),z))
- for j in range(len(rings)-1):
-  for i in range(segments):k=j*segments+i;n=j*segments+(i+1)%segments;faces.append((k,n,n+segments,k+segments))
- faces.append(tuple(range(segments-1,-1,-1)));faces.append(tuple((len(rings)-1)*segments+i for i in range(segments)))
- mesh=bpy.data.meshes.new(name);mesh.from_pydata(verts,[],faces);mesh.update();o=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(o)
- sub=o.modifiers.new('Soft sculpted surface','SUBSURF');sub.levels=2;sub.render_levels=2
- bpy.context.view_layer.objects.active=o;o.select_set(True);bpy.ops.object.modifier_apply(modifier=sub.name);o.select_set(False)
- return finish(o,name,m,bone)
-def tube(name,points,radius,m,bone='Head',radii=None):
- curve=bpy.data.curves.new(name,'CURVE');curve.dimensions='3D';curve.resolution_u=8;curve.bevel_depth=radius;curve.bevel_resolution=3
- spline=curve.splines.new('BEZIER');spline.bezier_points.add(len(points)-1)
- for i,(p,co) in enumerate(zip(spline.bezier_points,points)):
-  p.co=co;p.handle_left_type='AUTO';p.handle_right_type='AUTO';p.radius=radii[i] if radii else 1
- o=bpy.data.objects.new(name,curve);bpy.context.collection.objects.link(o);bpy.context.view_layer.objects.active=o;o.select_set(True);bpy.ops.object.convert(target='MESH');o=bpy.context.object;o.select_set(False)
- return finish(o,name,m,bone)
-# Body core has a soft silhouette, with real front, back and side geometry.
-loft('Body',[(0,0,1.42,.20,.13),(0,.01,1.53,.30,.18),(0,0,1.68,.29,.17),(0,0,1.83,.23,.14),(0,0,2.03,.27,.17),(0,0,2.20,.32,.18),(0,0,2.32,.34,.15),(0,0,2.40,.28,.12),(0,0,2.43,.12,.10)],skin)
-sphere('Neck',(0,0,2.49),(.10,.10,.20),skin,'Neck')
-# Face: tapered jaw, full cheeks and a gentle forehead rather than a plain sphere.
-bpy.ops.mesh.primitive_uv_sphere_add(segments=40,ring_count=32,location=(0,-.005,2.87));head=bpy.context.object
-for v in head.data.vertices:
- x,y,z=v.co; jaw=.78+.22*min(1,max(0,(z+.65)/.85));v.co=(x*.285*jaw,y*.235*(.92 if z<-.2 else 1),z*.365)
-finish(head,'Face',skin,'Head')
+# Fit a smooth, closed-loop tank shell to the torso BVH. Arms are excluded from this surface.
+torso_faces=[]
+for poly in body.data.polygons:
+ total=sum(sum(g.weight for g in body.data.vertices[i].groups if body.vertex_groups[g.group].name in ['Chest','Hips']) for i in poly.vertices)/len(poly.vertices)
+ if total>.80:torso_faces.append(list(poly.vertices))
+torso_bvh=BVHTree.FromPolygons([v.co for v in body.data.vertices],torso_faces,all_triangles=False)
+rows=16;segments=64;tv=[];tf=[];tw=[]
+for j in range(rows+1):
+ t=j/rows
+ for i in range(segments):
+  a=i*2*pi/segments;front=max(0,-sin(a));top=2.475-.035*front**2
+  z=1.94+(top-1.94)*t;center=Vector((0,-.045,z));direction=Vector((cos(a),sin(a),0))
+  hit,normal,idx,dist=torso_bvh.ray_cast(center+direction*.9,-direction,1.5)
+  if hit is None:hit=Vector((.30*cos(a),-.045+.20*sin(a),z));normal=direction;idx=None
+  tv.append(tuple(hit+normal*.026));tw.append(idx)
+for j in range(rows):
+ for i in range(segments):a=j*segments+i;b=j*segments+(i+1)%segments;tf.append((a,b,b+segments,a+segments))
+m=bpy.data.meshes.new('Fitted scoop-neck tank');m.from_pydata(tv,[],tf);m.update();top=bpy.data.objects.new('Fitted scoop-neck tank',m);bpy.context.collection.objects.link(top);m.materials.append(cloth)
+for poly in m.polygons:poly.use_smooth=True
+for i,idx in enumerate(tw):
+ combined={}
+ if idx is not None:
+  for vi in torso_faces[idx]:
+   for g in body.data.vertices[vi].groups:
+    n=body.vertex_groups[g.group].name;combined[n]=combined.get(n,0)+g.weight/len(torso_faces[idx])
+ else:combined={'Chest':1}
+ total=sum(combined.values()) or 1
+ for n,w in combined.items():(top.vertex_groups.get(n) or top.vertex_groups.new(name=n)).add([i],w/total,'REPLACE')
+solid=top.modifiers.new('Tank cloth thickness','SOLIDIFY');solid.thickness=.004;bpy.context.view_layer.objects.active=top;top.select_set(True);bpy.ops.object.modifier_apply(modifier=solid.name)
+shorts=garment('Fitted white shorts',lambda p:1.47<p.z<1.85 and abs(p.x)<.43)
+for v in shorts.data.vertices:
+ if v.co.z<1.51:v.co.z=1.48
+ if v.co.z>1.81:v.co.z=1.84
+# Smooth anatomical skin without destroying lips, fingers, eyelids or ankle connections.
+sub=body.modifiers.new('Anatomy smoothness','SUBSURF');sub.levels=1;bpy.context.view_layer.objects.active=body;bpy.ops.object.modifier_apply(modifier=sub.name)
+dec=body.modifiers.new('Mobile skin budget','DECIMATE');dec.ratio=.65;bpy.context.view_layer.objects.active=body;bpy.ops.object.modifier_apply(modifier=dec.name)
+# Face details fit the actual eye socket centers, not a cartoon ellipsoid.
+def add_weights(o,name):
+ g=o.vertex_groups.new(name=name);g.add(list(range(len(o.data.vertices))),1,'REPLACE')
+def sphere(name,loc,size,mat,segments=24,rings=16):
+ bpy.ops.mesh.primitive_uv_sphere_add(segments=segments,ring_count=rings,location=loc);o=bpy.context.object;o.name=name;o.scale=size;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);o.data.materials.append(mat)
+ for p in o.data.polygons:p.use_smooth=True
+ add_weights(o,'Head');return o
+def tube(name,points,radius,mat,radii=None):
+ c=bpy.data.curves.new(name,'CURVE');c.dimensions='3D';c.resolution_u=8;c.bevel_depth=radius;c.bevel_resolution=3
+ s=c.splines.new('BEZIER');s.bezier_points.add(len(points)-1)
+ for i,(p,co) in enumerate(zip(s.bezier_points,points)):p.co=co;p.handle_left_type='AUTO';p.handle_right_type='AUTO';p.radius=radii[i] if radii else 1
+ o=bpy.data.objects.new(name,c);bpy.context.collection.objects.link(o);bpy.context.view_layer.objects.active=o;o.select_set(True);bpy.ops.object.convert(target='MESH');o=bpy.context.object;o.data.materials.append(mat)
+ for p in o.data.polygons:p.use_smooth=True
+ add_weights(o,'Head');return o
+# Fine straps follow the actual shoulder surface and join the tank at front and back.
 for side in [-1,1]:
- sphere('Ear'+str(side),(side*.273,.005,2.85),(.055,.044,.088),skin,'Head',20,12)
- sphere('Ear inner'+str(side),(side*.297,-.025,2.85),(.017,.012,.049),earmat,'Head',16,10)
- # Eyes follow the curved face. Small irises and lids avoid a toy's staring eyeballs.
- x=side*.112
- eye=sphere('Eye'+str(side),(x,-.216,2.915),(.063,.029,.038),eyeWhite,'Head',24,16)
- sphere('Iris'+str(side),(x,-.247,2.915),(.025,.008,.027),iris,'Head',24,16)
- sphere('Pupil'+str(side),(x,-.255,2.916),(.012,.004,.017),pupil,'Head',20,12)
- sphere('Eye sparkle'+str(side),(x-.009,-.259,2.929),(.007,.003,.008),eyeWhite,'Head',12,8)
- tube('Upper lash'+str(side),[(x-.068,-.220,2.918),(x,-.251,2.955),(x+.068,-.220,2.918)],.007,brow,radii=[.35,.8,.35])
- tube('Lower lid'+str(side),[(x-.065,-.220,2.909),(x,-.245,2.876),(x+.065,-.220,2.909)],.005,skin,radii=[.3,1,.3])
- tube('Brow'+str(side),[(x-.065,-.203,2.998),(x,-.222,3.015),(x+.060,-.199,3.004)],.013,brow,radii=[.2,.65,.2])
- # Sculpted eyelids are hidden at rest and scaled for blinks in the game.
- lid=sphere('Blink'+('L' if side<0 else 'R'),(x,-.246,2.918),(.076,.021,.049),skin,'Head',24,12)
- lid.hide_render=True # export excluded, added as procedural eyelids at runtime
- bpy.data.objects.remove(lid,do_unlink=True);objects.pop();weights.pop('Blink'+('L' if side<0 else 'R'),None)
-sphere('Nose bridge',(0,-.221,2.856),(.031,.036,.072),skin,'Head',20,16)
-sphere('Nose tip',(0,-.263,2.825),(.040,.036,.031),skin,'Head',24,16)
-for side in [-1,1]:sphere('Nostril wing'+str(side),(side*.029,-.246,2.818),(.021,.023,.016),skin,'Head',16,10)
-tube('Smile', [(-.069,-.210,2.754),(-.035,-.231,2.746),(0,-.236,2.747),(.035,-.231,2.746),(.069,-.210,2.754)],.010,lips,radii=[.15,.65,.8,.65,.15])
-tube('Lower lip',[(-.049,-.218,2.742),(0,-.237,2.731),(.049,-.218,2.742)],.011,lips,radii=[.1,.8,.1])
-# Short sculpted pixie cap, with a hairline that clears the face.
-verts=[];faces=[];N=48;M=14
+ x=side*.205;points=[]
+ for z,back in [(2.45,False),(2.55,False),(2.625,False),(2.64,True),(2.56,True),(2.47,True)]:
+  origin=Vector((x,1 if back else -1,z));direction=Vector((0,-1 if back else 1,0))
+  hit,loc,normal,idx=body.ray_cast(origin,direction)
+  points.append((x,loc.y+(.010 if back else -.010) if hit else (.05 if back else -.12),z))
+ o=tube('Fine tank strap '+str(side),points,.009,cloth)
+ for g in list(o.vertex_groups):o.vertex_groups.remove(g)
+ add_weights(o,'Chest')
+eye_centers=[]
+# The bundled CC0 eye surface was designed for this base topology.
+ev,eg,ef=readobj(VENDOR/'eyes.obj')
+for side,label in [(1,'L'),(-1,'R')]:
+ oldcenter=sum((original[i] for i in rigdata['joints']['eye.'+label+'____head']),Vector())/8
+ newcenter=sum((raw[i] for i in rigdata['joints']['eye.'+label+'____head']),Vector())/8
+ center=transform(newcenter);eye_centers.append(center)
+ ids=[i for i,p in enumerate(ev) if p.x*side>0];remap={v:i for i,v in enumerate(ids)};fs=[[remap[i] for i in f] for f in ef if all(i in remap for i in f)]
+ m=bpy.data.meshes.new('Eye surface '+label);m.from_pydata([transform(ev[i]+newcenter-oldcenter) for i in ids],[],fs);m.update();o=bpy.data.objects.new('Eye '+label,m);bpy.context.collection.objects.link(o);m.materials.append(white)
+ sub=o.modifiers.new('Eye smoothness','SUBSURF');sub.levels=2;bpy.context.view_layer.objects.active=o;o.select_set(True);bpy.ops.object.modifier_apply(modifier=sub.name)
+ for p in o.data.polygons:p.use_smooth=True
+ add_weights(o,'Head')
+ iriscenter=center+Vector((0,-.028,0))
+ sphere('Iris '+label,iriscenter,(.012,.004,.013),blue)
+ sphere('Pupil '+label,iriscenter+Vector((0,-.0035,0)),(.0055,.002,.007),black)
+ sphere('Eye sparkle '+label,iriscenter+Vector((-.003,-.006,.004)),(.002,.001,.0022),white,12,8)
+ # A brow hugs the forehead above the actual socket.
+ points=[]
+ for j in range(5):
+  t=j/4;x=center.x+(t-.5)*.081;z=center.z+.049+.009*sin(pi*t)
+  hit,loc,normal,index=body.ray_cast(Vector((x,-1,z)),Vector((0,1,0)))
+  points.append((x,loc.y-.003 if hit else center.y-.015,z))
+ tube('Brow '+label,points,.0038,brow,[.15,.75,1,.7,.15])
+# Blink closes the actual eyelid surface. The eyeballs retain their round shape.
+basis=body.shape_key_add(name='Basis');blink=body.shape_key_add(name='Blink')
+for v in blink.data:
+ for e in eye_centers:
+  dx=abs(v.co.x-e.x);dz=v.co.z-e.z
+  if dx<.034 and -.020<dz<.028 and v.co.y<e.y-.008:
+   strength=max(0,1-(dx/.034)**2)
+   if dz>0:v.co.z-=min(dz+.003,.026)*strength
+   else:v.co.z+=min(-dz,.007)*strength
+# Tapered ash-blonde pixie, with layered side-swept fringe, close sides and tousled crown.
+HC=Vector((0,-.092,3.025));RX=.170;RY=.194;RZ=.247
+head_bvh=BVHTree.FromPolygons([v.co for v in body.data.vertices],[list(p.vertices) for p in body.data.polygons],all_triangles=False)
+def scalp(p,offset=.012):
+ d=(Vector(p)-HC).normalized();hit,normal,idx,dist=head_bvh.ray_cast(HC+d*.7,-d,1.1)
+ return hit+normal*offset if hit is not None else Vector(p)
+vertices=[];faces=[];N=48;M=16
 for j in range(M+1):
- t=j/M
  for i in range(N):
-  a=i*2*pi/N
-  front=max(0,-sin(a));limit=1.90-.70*front
-  theta=.025+t*limit
-  verts.append((.303*sin(theta)*cos(a),.259*sin(theta)*sin(a)+.012,2.89+.39*cos(theta)))
+  a=i*2*pi/N;t=.018+j/M*(2.10-1.05*max(0,-sin(a)))
+  vertices.append(tuple(scalp((RX*sin(t)*cos(a),HC.y+RY*sin(t)*sin(a),HC.z+RZ*cos(t)))))
 for j in range(M):
  for i in range(N):a=j*N+i;b=j*N+(i+1)%N;faces.append((a,b,b+N,a+N))
-mesh=bpy.data.meshes.new('Pixie cap');mesh.from_pydata(verts,[],faces);mesh.update();o=bpy.data.objects.new('Pixie cap',mesh);bpy.context.collection.objects.link(o);finish(o,'Pixie cap',hair,'Head')
-# Curved, tapered locks sweep across her forehead and wrap the crown.
-for i in range(8):
- t=i/7;x=-.24+t*.48
- tube('Swept fringe %02d'%i,[(x*.3+.05,-.10,3.27),(x*.9,-.22,3.22),(x-.075,-.268,3.10-.10*(1-t))],.052,hair,radii=[.45,1,.015])
+m=bpy.data.meshes.new('Pixie foundation');m.from_pydata(vertices,[],faces);m.update();o=bpy.data.objects.new('Pixie foundation',m);bpy.context.collection.objects.link(o);m.materials.append(hair)
+for p in m.polygons:p.use_smooth=True
+add_weights(o,'Head')
+def lock(name,ps,width,mat):
+ ps=[Vector(p) for p in ps];vs=[];fs=[];rows=12;around=8
+ for j in range(rows+1):
+  t=j/rows;c=(1-t)**2*ps[0]+2*t*(1-t)*ps[1]+t*t*ps[2];c=scalp(c,(.024+.014*sin(pi*t)) if t<.85 else .014);tan=(2*(1-t)*(ps[1]-ps[0])+2*t*(ps[2]-ps[1])).normalized();normal=Vector((c.x/RX,(c.y-HC.y)/RY,(c.z-HC.z)/RZ)).normalized();cross=tan.cross(normal).normalized();normal=cross.cross(tan).normalized();r=width*(.4+.7*sin(pi*t))*(1-t)**.55+.0005
+  for k in range(around):a=k*2*pi/around;vs.append(tuple(c+cross*cos(a)*r+normal*sin(a)*r*.25))
+ for j in range(rows):
+  for k in range(around):a=j*around+k;b=j*around+(k+1)%around;fs.append((a,b,b+around,a+around))
+ fs.append(tuple(range(around-1,-1,-1)));fs.append(tuple(rows*around+k for k in range(around)))
+ m=bpy.data.meshes.new(name);m.from_pydata(vs,[],fs);m.update();o=bpy.data.objects.new(name,m);bpy.context.collection.objects.link(o);m.materials.append(mat)
+ for p in m.polygons:p.use_smooth=True
+ add_weights(o,'Head')
+for i in range(14):
+ t=i/13;x=-.145+.30*t
+ lock('Side-swept fringe %02d'%i,[(.05+.022*sin(i),-.07,3.285),(.025+x*.65,-.295,3.21-.025*(1-t)),(x-.012,-.281,3.095-.072*(1-t))],.027+(i%3)*.002,hairlight if i%4 else hair)
 for side in [-1,1]:
- for i in range(5):
-  tube('Side lock'+str(side)+str(i),[(side*.20,.09-i*.04,3.19),(side*.30,.06-i*.04,3.02),(side*.27,.08-i*.025,2.91)],.032,hair if i%2 else highlight,radii=[.4,1,.02])
-for i in range(7):
- a=i*pi/3.5
- tube('Crown lock'+str(i),[(.06*cos(a),.02+.05*sin(a),3.29),(.20*cos(a),.02+.17*sin(a),3.25),(.28*cos(a),.02+.23*sin(a),3.10)],.030,hair if i%2 else highlight,radii=[.35,1,.02])
-# Tank top: cloth shell, edging, and straps pass over the shoulders.
-loft('Tank top',[(0,0,1.84,.238,.148),(0,0,1.87,.243,.152),(0,-.003,2.0,.275,.177),(0,-.005,2.14,.325,.193),(0,0,2.22,.321,.176)],white)
-tube('Tank hem',[(.237*cos(a),.151*sin(a),1.854) for a in [i*2*pi/24 for i in range(25)]],.009,white,'Chest')
-for side in [-1,1]:tube('Tank strap'+str(side),[(side*.195,-.145,2.20),(side*.21,-.10,2.40),(side*.21,.03,2.43),(side*.195,.13,2.21)],.025,white,'Chest')
-# Shorts use an opaque upper shell to cover the pelvis and connected tailored legs.
-loft('Shorts body',[(0,0,1.40,.275,.17),(0,0,1.48,.307,.186),(0,0,1.60,.311,.189),(0,0,1.665,.296,.18)],white,'Hips')
-# Shorts waistband and leg hems.
-loft('Shorts waistband',[(0,0,1.62,.300,.184),(0,0,1.67,.293,.175),(0,0,1.69,.284,.171)],white,'Hips')
-for side,label in [(-1,'L'),(1,'R')]:
- x=side*.16
- loft('Shorts '+label,[(x,0,1.32,.153,.158),(x,0,1.36,.16,.17),(x,0,1.52,.175,.18),(x*.8,0,1.65,.175,.18)],white,'UpperLeg'+label)
- # Tapered legs with knees and ankles; parenting to the armature is continuous-weighted below.
- loft('Leg '+label,[(x,-.045,.12,.049,.065),(x,-.015,.24,.052,.058),(x,.02,.52,.081,.085),(x,0,.82,.078,.085),(x,-.015,1.0,.106,.12),(x,0,1.29,.142,.15),(x,0,1.48,.151,.15)],skin,'Leg'+label)
- sphere('Foot '+label,(x,-.10,.085),(.071,.157,.075),skin,'Foot'+label)
- # Natural resting arm taper rather than a chain of spheres.
- loft('Arm '+label,[(side*.51,0,1.57,.043,.044),(side*.50,0,1.72,.049,.052),(side*.47,.01,1.94,.067,.067),(side*.44,0,2.14,.075,.079),(side*.365,0,2.35,.105,.104)],skin,'Arm'+label)
- sphere('Palm '+label,(side*.515,-.01,1.50),(.050,.037,.098),skin,'Hand'+label)
- for f in range(4):
-  fx=side*(.481+f*.022)
-  tube('Finger '+label+str(f),[(fx,-.014,1.47),(fx,-.022,1.407),(fx,-.031,1.365+(abs(f-1.3)*.012))],.011,skin,'Hand'+label,radii=[1,.9,.55])
- tube('Thumb '+label,[(side*.477,-.014,1.53),(side*.449,-.035,1.49),(side*.444,-.046,1.46)],.017,skin,'Hand'+label,radii=[1,.9,.5])
-for side in [-1,1]:sphere('Shoulder'+str(side),(side*.325,0,2.33),(.135,.12,.125),skin,'Chest')
-# Fuse the skin into a continuous surface so joints do not separate during motion.
-bpy.ops.object.select_all(action='DESELECT')
-skin_objects=[o for o in objects if o.name in bpy.data.objects and o.data.materials[0]==skin]
-for o in skin_objects:o.select_set(True)
-bpy.context.view_layer.objects.active=skin_objects[0]
-old_names=[o.name for o in skin_objects]
-bpy.ops.object.join();body=bpy.context.object;body.name='Stella skin'
-remesh=body.modifiers.new('Continuous sculpt','REMESH');remesh.mode='VOXEL';remesh.voxel_size=.013;remesh.use_smooth_shade=True
-bpy.ops.object.modifier_apply(modifier=remesh.name)
-smooth=body.modifiers.new('Skin polish','SMOOTH');smooth.factor=.9;smooth.iterations=4;bpy.ops.object.modifier_apply(modifier=smooth.name)
-dec=body.modifiers.new('Mobile topology','DECIMATE');dec.ratio=.48;bpy.ops.object.modifier_apply(modifier=dec.name)
-objects=[o for o in bpy.data.objects if o.type=='MESH']
-weights[body.name]='SmoothSkin'
-
-# Armature with explicit, predictable deformation weights.
-armdata=bpy.data.armatures.new('Stella rig');rig=bpy.data.objects.new('StellaRig',armdata);bpy.context.collection.objects.link(rig);bpy.context.view_layer.objects.active=rig;rig.select_set(True);bpy.ops.object.mode_set(mode='EDIT')
-def bone(name,head,tail,parent=None):
- b=armdata.edit_bones.new(name);b.head=head;b.tail=tail
- if parent:b.parent=armdata.edit_bones[parent]
- return b
-bone('Hips',(0,0,1.48),(0,0,1.84));bone('Chest',(0,0,1.84),(0,0,2.38),'Hips');bone('Neck',(0,0,2.38),(0,0,2.63),'Chest');bone('Head',(0,0,2.63),(0,0,3.23),'Neck')
-for side,label in [(-1,'L'),(1,'R')]:
- bone('UpperArm'+label,(side*.365,0,2.35),(side*.47,.01,1.94),'Chest');bone('Forearm'+label,(side*.47,.01,1.94),(side*.51,0,1.57),'UpperArm'+label);bone('Hand'+label,(side*.51,0,1.57),(side*.515,-.01,1.41),'Forearm'+label)
- bone('UpperLeg'+label,(side*.16,0,1.48),(side*.16,0,.82),'Hips');bone('LowerLeg'+label,(side*.16,0,.82),(side*.16,-.045,.12),'UpperLeg'+label);bone('Foot'+label,(side*.16,-.045,.12),(side*.16,-.22,.08),'LowerLeg'+label)
-bpy.ops.object.mode_set(mode='OBJECT')
-for o in objects:
- if o.name not in bpy.data.objects:continue
- kind=weights[o.name]
- for v in o.data.vertices:
-  co=o.matrix_world@v.co;z=co.z;assign={}
-  if kind=='SmoothSkin':
-   ax=abs(co.x);label='L' if co.x<0 else 'R'
-   if z>2.59:assign={'Head':1}
-   elif z>2.4 and ax<.17:
-    t=max(0,min(1,(z-2.46)/.14));assign={'Head':t,'Neck':1-t}
-   elif (ax>.38 and z>1.32 and z<2.3) or (ax>.29 and z>=2.3 and z<2.48):
-    arm=max(0,min(1,(ax-.28)/.14))
-    if z<1.58:assign={'Hand'+label:1}
-    else:
-     t=max(0,min(1,(z-1.84)/.2));assign={'UpperArm'+label:t*arm,'Forearm'+label:(1-t)*arm,'Chest':1-arm}
-   elif z<1.46:
-    if z<.20:
-     t=max(0,min(1,(z-.11)/.13));assign={'LowerLeg'+label:t,'Foot'+label:1-t}
-    else:
-     t=max(0,min(1,(z-.73)/.18));assign={'UpperLeg'+label:t,'LowerLeg'+label:1-t}
-   else:
-    t=max(0,min(1,(z-1.67)/.4));assign={'Chest':t,'Hips':1-t}
-  elif kind.startswith('Leg'):
-   label=kind[-1];t=max(0,min(1,(z-.73)/.18));assign={'UpperLeg'+label:t,'LowerLeg'+label:1-t}
-  elif kind.startswith('Arm'):
-   label=kind[-1];t=max(0,min(1,(z-1.84)/.20));assign={'UpperArm'+label:t,'Forearm'+label:1-t}
-  elif kind=='Chest':
-   t=max(0,min(1,(z-1.67)/.4));assign={'Chest':t,'Hips':1-t}
-  else:assign={kind:1}
-  for name,value in assign.items():
-   if value>0:
-    g=o.vertex_groups.get(name) or o.vertex_groups.new(name=name);g.add([v.index],value,'REPLACE')
- mod=o.modifiers.new('Stella skeleton','ARMATURE');mod.object=rig;o.parent=rig
-# Retain named rig nodes even when they have no animation track yet.
-rig['description']='Original stylized Stella. Blonde pixie hair, blue eyes, white tank and shorts. Procedural artist source.'
-root=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-assetdir=os.path.join(root,'dist') if os.path.isdir(os.path.join(root,'dist')) else root
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(root,'art','Stella.blend'))
-bpy.ops.export_scene.gltf(filepath=os.path.join(assetdir,'stella.glb'),export_format='GLB',export_yup=True,export_animations=False,export_skins=True,export_def_bones=True,export_apply=False)
-print('STELLA_MODEL_EXPORTED',os.path.getsize(os.path.join(assetdir,'stella.glb')))
+ for i in range(7):
+  lock('Layered side '+str(side)+' '+str(i),[(side*.11,.035-i*.025,3.23),(side*.182,.045-i*.025,3.13),(side*.158,.062-i*.021,2.97+.018*sin(i))],.025,hairlight if i%3 else hair)
+for i in range(15):
+ a=i*2*pi/15
+ lock('Tousled crown '+str(i),[(.03*cos(a),HC.y+.04*sin(a),3.28),(.14*cos(a),HC.y+.16*sin(a),3.28+.012*sin(i)),(.175*cos(a),HC.y+.192*sin(a),3.105+.025*sin(i*2))],.028,hairlight if i%3 else hair)
+# Attach every visible mesh to the same rig; no primitive hands/feet or sliced photos remain.
+for o in list(bpy.data.objects):
+ if o.type!='MESH':continue
+ mod=o.modifiers.new('Stella deformation','ARMATURE');mod.object=rig;o.parent=rig
+rig['description']='Reference-guided Stella with adapted CC0 human anatomy, pixie hair, white basics and a 16-bone game rig.'
+rig['source']='MakeHuman CC0 assets; see art/vendor/LICENSE-CC0.md and THIRD_PARTY.md'
+bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'art/Stella.blend'))
+bpy.ops.export_scene.gltf(filepath=str(ASSETS/'stella.glb'),export_format='GLB',export_yup=True,export_animations=False,export_skins=True,export_morph=True,export_def_bones=True,export_apply=False,export_extras=True)
+print('STELLA_REFINED',os.path.getsize(ASSETS/'stella.glb'))

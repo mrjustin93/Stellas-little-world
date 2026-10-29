@@ -4,14 +4,23 @@ window.createStellaCharacter=async function(T){
  const loader=new GLTFLoader();
  const gltf=window.STELLA_MODEL?await loader.parseAsync(Uint8Array.from(atob(window.STELLA_MODEL),c=>c.charCodeAt(0)).buffer,''):await loader.loadAsync('stella.glb');
  const model=gltf.scene, group=new T.Group();group.name='Stella3D';group.add(model);
- const bones={},rest={},targets={},eyes=[];
+ const bones={},rest={},targets={},eyes=[],blinkMeshes=[];
  model.traverse(o=>{
   if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;}
+  if(o.morphTargetDictionary&&o.morphTargetDictionary.Blink!==undefined)blinkMeshes.push(o);
   if(o.isBone){bones[o.name]=o;rest[o.name]=o.quaternion.clone();targets[o.name]=o.quaternion.clone();}
   if(/^(Eye|Iris|Pupil|Eye_sparkle)/.test(o.name))eyes.push(o);
  });
- const xAxis=new T.Vector3(1,0,0),yAxis=new T.Vector3(0,1,0),zAxis=new T.Vector3(0,0,1),q=new T.Quaternion();
- function rotate(name,x=0,y=0,z=0){const b=bones[name];if(!b)return;targets[name].copy(rest[name]);for(const [a,v] of [[xAxis,x],[yAxis,y],[zAxis,z]])if(v)targets[name].multiply(q.setFromAxisAngle(a,v));}
+ group.updateMatrixWorld(true);
+ const axes={},q=new T.Quaternion();
+ for(const [name,bone] of Object.entries(bones)){
+  const inverse=bone.getWorldQuaternion(new T.Quaternion()).invert();
+  axes[name]=[new T.Vector3(1,0,0),new T.Vector3(0,1,0),new T.Vector3(0,0,1)].map(a=>a.applyQuaternion(inverse));
+ }
+ function rotate(name,x=0,y=0,z=0){const b=bones[name];if(!b)return;targets[name].copy(rest[name]);for(const [a,v] of [[axes[name][0],x],[axes[name][1],y],[axes[name][2],z]])if(v)targets[name].multiply(q.setFromAxisAngle(a,v));}
+ group.updateMatrixWorld(true);
+ const restL=new T.Vector3(),restR=new T.Vector3();bones.FootL.getWorldPosition(restL);bones.FootR.getWorldPosition(restR);
+ const footGround=Math.min(restL.y,restR.y)+.045;
  let blend=0,time=0;
  function update(dt,walk,idle=true,immediate=false){
   if(idle||walk.walking)time+=dt;
@@ -44,14 +53,14 @@ window.createStellaCharacter=async function(T){
   }
   // The face behind the eyes remains intact when the eye surfaces close.
   const t=time%4.8,blink=idle&&t>4.55?Math.sin((t-4.55)/.25*Math.PI):0;
-  for(const eye of eyes)eye.scale.y=1-blink*.96;
+  if(blinkMeshes.length){for(const mesh of blinkMeshes)mesh.morphTargetInfluences[mesh.morphTargetDictionary.Blink]=blink;}else{for(const eye of eyes)eye.scale.y=1-blink*.96;}
   group.updateMatrixWorld(true);
   if(bones.FootL&&bones.FootR){
     const a=new T.Vector3(),b=new T.Vector3();bones.FootL.getWorldPosition(a);bones.FootR.getWorldPosition(b);
-    group.position.y+=.165-Math.min(a.y,b.y);
+    group.position.y+=footGround-Math.min(a.y,b.y);
     group.updateMatrixWorld(true);
   }
   return blend>.001||transitioning;
  }
- return {group,model,bones,update,stats:{bones:Object.keys(bones).length,skinnedMeshes:(()=>{let n=0;model.traverse(o=>{if(o.isSkinnedMesh)n++});return n})()}};
+ return {group,model,bones,update,stats:{bones:Object.keys(bones).length,blinkMeshes:blinkMeshes.length,skinnedMeshes:(()=>{let n=0;model.traverse(o=>{if(o.isSkinnedMesh)n++});return n})()}};
 };
