@@ -72,3 +72,8 @@ button:disabled{opacity:.5;cursor:wait;transform:none}
   .outfit{height:100px;padding:12px 34px 12px 68px;justify-content:center}.outfit canvas{height:92px;left:15px;top:3px}.outfit strong{font-size:12px}.outfit small{font-size:10px}.outfit:before{top:38px;right:8px}
   #toast{top:60px;bottom:auto;font-size:12px}.character-label small{display:none}
 }
+.joystick{position:absolute;left:18px;bottom:18px;width:100px;height:100px;z-index:3;border:1px solid #ffffffb0;border-radius:50%;background:#fff9ec6b;touch-action:none;user-select:none;display:grid;place-items:center;box-shadow:0 3px 20px #604c3420}
+.stick-ring{position:absolute;inset:18px;border:1px dashed #a18a6e55;border-radius:50%}#stick{display:block;width:44px;height:44px;border-radius:50%;background:#fffaf1e6;box-shadow:0 3px 10px #69503b33;pointer-events:none}.joystick-label{position:absolute;bottom:5px;font-size:8px;letter-spacing:2px;color:#8b785e;pointer-events:none}.joystick[aria-disabled=true]{opacity:.35;pointer-events:none}
+.home-button{position:absolute;right:18px;bottom:23px;width:46px;height:46px;z-index:3;border-radius:50%;font-size:25px;padding:0;background:#fffaf1e6}.character-label{bottom:135px}.outfit-icon{position:absolute;left:20px;top:25px;font-size:38px;color:#b8a4c5}
+@media(max-width:760px){.joystick{width:88px;height:88px;left:12px;bottom:12px}.character-label{bottom:110px;left:16px}.home-button{bottom:15px;right:14px}.outfit-icon{font-size:34px;top:20px;left:20px}.drag-hint{max-width:80%;text-align:center}.loading{max-width:90%;width:max-content}.world:has(~ .loading:not([hidden])){opacity:.7}}
+@media(max-height:520px) and (orientation:landscape){.character-label{display:none}.joystick{width:82px;height:82px;bottom:8px;left:10px}}

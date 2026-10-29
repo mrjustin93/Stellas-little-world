@@ -1,34 +1,38 @@
-const assets=require('node:fs').existsSync(require('node:path').join(__dirname,'../dist/core.js'))?'../dist/':'../';
-const {test}=require('node:test');
-const assert=require('node:assert/strict');
-const {poses,orbit,nextView,removeBackground,inside}=require(assets+'core.js');
-test('turn arrows complete one circle and reverse without jumping into unrelated stances',()=>{
-  let pose=1;const seen=[];
-  for(let i=0;i<6;i++){seen.push(pose);const next=nextView(pose,1);assert.equal(nextView(next,-1),pose);pose=next;}
-  assert.deepEqual(seen,orbit);assert.equal(pose,1);
-  assert.equal(nextView(7,1),2);assert.equal(nextView(0,-1),3);
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const assets=fs.existsSync(path.join(__dirname,'../dist/core.js'))?'../dist/':'../';
+const {motion,advance,setTarget,allowed,obstacles}=require(assets+'core.js');
+test('Stella walks toward a destination and stops without overshooting',()=>{
+ const m=motion();assert(setTarget(m,1.2,1.8));for(let i=0;i<500;i++)advance(m,1/60);
+ assert(Math.hypot(m.x-1.2,m.z-1.8)<.05);assert(!m.walking);assert.equal(m.target,null);assert(m.distance>1);
 });
-test('all reference crops stay above captions and within the source image',()=>{
-  assert.equal(poses.length,8);
-  for(const p of poses){assert(p.crop[0]>=0);assert(p.crop[1]<=1280);assert(p.crop[1]>p.crop[0]);assert(p.garments.length>0);}
+test('diagonal stick movement has the same speed as axial movement',()=>{
+ const a=motion(),b=motion();a.input={x:1,z:0};b.input={x:1,z:1};
+ for(let i=0;i<30;i++){advance(a,1/60);advance(b,1/60);}
+ assert(Math.abs(a.distance-b.distance)<1e-8);
 });
-test('background cleanup retains neutral white clothes and drops detached neighboring fragments',()=>{
-  const w=20,h=20,p=new Uint8ClampedArray(w*h*4);
-  for(let i=0;i<w*h;i++)p.set([208,208,208,255],i*4);
-  // White garment touches the background, with a colored skin pixel above it.
-  for(let y=6;y<16;y++)for(let x=6;x<14;x++)p.set([205,207,211,255],(y*w+x)*4);
-  p.set([220,170,140,255],(5*w+9)*4);
-  p.set([220,170,140,255],(2*w+2)*4); // Neighbor fragment.
-  removeBackground(p,w,h,[[[6,6],[14,6],[14,16],[6,16]]]);
-  assert.equal(p[0*4+3],0);
-  assert.equal(p[(10*w+9)*4+3],255);
-  assert.equal(p[(5*w+9)*4+3],255);
-  assert.equal(p[(2*w+2)*4+3],0);
+test('movement is time based at 30 and 60 frames per second',()=>{
+ const a=motion(),b=motion();a.input.x=b.input.x=1;
+ for(let i=0;i<30;i++)advance(a,1/30);for(let i=0;i<60;i++)advance(b,1/60);
+ assert(Math.abs(a.x-b.x)<1e-8);
 });
-test('garment protection maps source coordinates into each crop',()=>{
-  assert(inside(270,280,poses[1].garments[0]));
-  const p=new Uint8ClampedArray(4*4*4).fill(208);
-  for(let i=3;i<p.length;i+=4)p[i]=255;
-  removeBackground(p,4,4,[[[101,101],[103,101],[103,103],[101,103]]],100,100);
-  assert.equal(p[(1*4+1)*4+3],255);assert.equal(p[3],0);
+test('stick release stops movement and joystick input cancels a tap destination',()=>{
+ const m=motion();setTarget(m,2,2);m.input.x=-1;advance(m,.03);assert.equal(m.target,null);
+ m.input.x=0;const x=m.x;advance(m,.03);assert.equal(m.x,x);assert(!m.walking);
+});
+test('camera-relative controls turn the walk direction',()=>{
+ const m=motion();m.input.z=1;advance(m,.05,Math.PI/2);assert(m.x>0);assert(Math.abs(m.z-.7)<1e-8);
+});
+test('furniture and out-of-room taps are rejected',()=>{
+ const m=motion();for(const o of obstacles)assert.equal(setTarget(m,o.x,o.z),false);
+ assert.equal(setTarget(m,99,0),false);assert.equal(setTarget(m,NaN,0),false);assert.equal(setTarget(m,0,Infinity),false);
+});
+test('continuous walking cannot pass through furniture or room walls',()=>{
+ const m=motion();m.input.x=1;for(let i=0;i<1000;i++)advance(m,.05);assert(allowed(m.x,m.z));assert(m.x<=4.55);
+ m.input={x:0,z:-1};for(let i=0;i<1000;i++)advance(m,.05);assert(allowed(m.x,m.z));assert(m.z>=-.15);
+});
+test('long frame delays do not teleport through obstacles',()=>{
+ const m=motion();m.input.x=1;advance(m,40);assert(m.distance<=1.22*.05+.00001);
+});
+test('home defaults return the character to the safe dressing rug',()=>{
+ const m=motion();assert(allowed(m.x,m.z));assert.equal(m.x,0);assert.equal(m.z,.7);assert.equal(m.yaw,0);
 });

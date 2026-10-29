@@ -1,12 +1,11 @@
 'use strict';
 const $ = s => document.querySelector(s);
-const {poses, palettes, nextView, removeBackground} = StellaCore;
-const canvas = $('#stella'), ctx = canvas.getContext('2d');
+const {palettes} = StellaCore;
 const host = $('#viewport'), world = $('#world');
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
-const state = {pose:1, paused:motion.matches, night:false, tab:'wardrobe', ready:false, failed:false, palette:palettes[0]};
-let frames=[];
-window.stellaGame = {state, canvas, motion};
+const state = {gesture:'relaxed', paused:motion.matches, night:false, tab:'wardrobe', ready:false, failed:false, palette:palettes[0]};
+const walking=StellaCore.motion();
+window.stellaGame = {state, walking, motion};
 function emit(name) { window.dispatchEvent(new CustomEvent('stella:'+name)); }
 function toast(message) {
   $('#toast').textContent=message;
@@ -23,31 +22,6 @@ function updateAnimation() {
 $('#animate').onclick=()=>{state.paused=!state.paused;updateAnimation();};
 motion.addEventListener('change',()=>{if(motion.matches){state.paused=true;updateAnimation();}});
 updateAnimation();
-function setPose(n) {
-  state.pose=n;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(state.ready) {
-    const frame=frames[n], scale=740/frame.height;
-    ctx.drawImage(frame,(230-frame.width*scale)/2,20,frame.width*scale,740);
-  }
-  canvas.setAttribute('aria-label',`Stella in her white tank and shorts: ${poses[n].name}`);
-  $('#viewname').textContent=poses[n].name;
-  emit('pose');
-  if(state.tab==='poses') updatePoseButtons();
-  if(state.tab==='wardrobe') updateThumbnail();
-}
-$('#left').onclick=()=>setPose(nextView(state.pose,-1));
-$('#right').onclick=()=>setPose(nextView(state.pose,1));
-function updateThumbnail() {
-  const small=$('.outfit canvas');
-  if(small){const x=small.getContext('2d');x.clearRect(0,0,230,780);x.drawImage(canvas,0,0);}
-}
-function updatePoseButtons() {
-  $('#panel').querySelectorAll('[data-pose]').forEach(b=>{
-    const selected=+b.dataset.pose===state.pose;
-    b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));
-  });
-}
 function lighting() {
   state.night=!state.night;
   host.classList.toggle('evening',state.night);
@@ -69,13 +43,14 @@ function setColor(palette, save=false) {
 function render() {
   const panel=$('#panel');
   if(state.tab==='wardrobe') {
-    panel.innerHTML='<div class="category-title">The essentials <span>1 outfit</span></div><button class="outfit" aria-pressed="true"><canvas width="230" height="780" aria-hidden="true"></canvas><strong>The everyday basics</strong><small>White tank + soft shorts · Equipped</small></button><div class="empty"><span>♧</span><h3>A wardrobe waiting to happen</h3><p>New clothes, new possibilities.<br>Your next collection belongs here.</p></div>';
-    updateThumbnail();
+    panel.innerHTML='<div class="category-title">The essentials <span>1 outfit</span></div><button class="outfit" aria-pressed="true"><span class="outfit-icon" aria-hidden="true">♧</span><strong>The everyday basics</strong><small>White tank + soft shorts · Equipped</small></button><div class="empty"><span>♧</span><h3>A wardrobe waiting to happen</h3><p>New clothes, new possibilities.<br>Your next collection belongs here.</p></div>';
     $('.outfit').onclick=()=>toast('Everyday basics are already equipped ✧');
-  } else if(state.tab==='poses') {
-    panel.innerHTML='<div class="category-title">Strike a pose <span>8 views</span></div><div class="pose-grid">'+poses.map((p,i)=>`<button data-pose="${i}"${state.ready?'':' disabled'}>${p.name}</button>`).join('')+'</div><p class="panel-caption">Use the turn arrows for a full circle. Choose a pose here for a different stance.</p>';
-    panel.querySelectorAll('[data-pose]').forEach(b=>b.onclick=()=>setPose(+b.dataset.pose));
-    updatePoseButtons();
+  } else if(state.tab==='stella') {
+    panel.innerHTML='<div class="category-title">Meet Stella <span>3D character</span></div><div class="pose-grid"><button data-gesture="relaxed">Relax</button><button data-gesture="confident">Stand confidently</button><button data-gesture="wave">Wave hello</button><button id="face-front">Face me</button></div><p class="panel-caption">Use the thumbstick or tap the floor to walk around her closet.</p>';
+    panel.querySelectorAll('[data-gesture]').forEach(b=>{b.disabled=!state.ready;b.setAttribute('aria-pressed',String(b.dataset.gesture===walking.gesture));b.onclick=()=>{
+      walking.target=null;walking.input.x=walking.input.z=0;walking.gesture=b.dataset.gesture;emit('gesture');render();
+    };});
+    $('#face-front').onclick=()=>{walking.yaw=window.stellaGame.angle||0;emit('gesture');};
   } else {
     panel.innerHTML='<div class="category-title">Set the mood <span>Your space</span></div><div class="room-label">Closet palette</div><div class="swatches">'+palettes.map(p=>`<button aria-label="${p.name}" aria-pressed="${p.name===state.palette.name}" style="background:${p.color}" data-palette="${p.name}"></button>`).join('')+'</div><button id="roomlight">☀ / ☾ &nbsp; Switch lighting</button><p class="panel-caption">A little refresh for your happy place.</p>';
     panel.querySelectorAll('[data-palette]').forEach(b=>b.onclick=()=>{setColor(palettes.find(p=>p.name===b.dataset.palette),true);toast(b.dataset.palette+' palette selected');});
@@ -108,24 +83,51 @@ try {
     if(palette)setColor(palette);
   }
 }catch{}
-selectTab(tabs[0]);setPose(1);
+selectTab(tabs[0]);
 let dragging=null, dragAngle=0;
-function endDrag() {
-  dragging=null;host.classList.remove('dragging');
-  // Keep the same room angle in CSS and WebGL after the drag ends.
-}
 host.addEventListener('pointerdown',e=>{
-  if(e.target.closest('button')||(e.pointerType==='mouse'&&e.button!==0))return;
-  dragging={id:e.pointerId,x:e.clientX,angle:dragAngle};
-  host.classList.add('dragging');host.setPointerCapture(e.pointerId);
+  if(e.target.closest('button, .joystick')||(e.pointerType==='mouse'&&e.button!==0))return;
+  dragging={id:e.pointerId,x:e.clientX,y:e.clientY,angle:dragAngle,moved:false};
+  host.setPointerCapture(e.pointerId);
 });
 host.addEventListener('pointermove',e=>{
   if(!dragging||e.pointerId!==dragging.id)return;
-  dragAngle=Math.max(-.32,Math.min(.32,dragging.angle+(e.clientX-dragging.x)*.002));
-  world.style.setProperty('--angle',`${dragAngle*180/Math.PI}deg`);
+  if(Math.hypot(e.clientX-dragging.x,e.clientY-dragging.y)>8)dragging.moved=true;
+  if(!dragging.moved)return;
+  dragAngle=Math.max(-.5,Math.min(.5,dragging.angle+(e.clientX-dragging.x)*.003));
   window.stellaGame.angle=dragAngle;emit('camera');
 });
-host.addEventListener('pointerup',endDrag);host.addEventListener('pointercancel',endDrag);host.addEventListener('lostpointercapture',endDrag);
+host.addEventListener('pointerup',e=>{
+  if(dragging&&!dragging.moved&&state.ready){window.stellaGame.tap={x:e.clientX,y:e.clientY};emit('walkto');}
+  dragging=null;
+});
+host.addEventListener('pointercancel',()=>{dragging=null;});
+const stick=$('#joystick');let stickPointer=null;
+function moveStick(e){
+  if(e.pointerId!==stickPointer)return;
+  const r=stick.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,z=e.clientY-r.top-r.height/2;
+  const d=Math.hypot(x,z),limit=28,f=d>limit?limit/d:1;
+  walking.input.x=x*f/limit;walking.input.z=z*f/limit;
+  $('#stick').style.transform=`translate(${x*f}px,${z*f}px)`;emit('move');
+}
+function stopStick(){stickPointer=null;walking.input.x=walking.input.z=0;$('#stick').style.transform='translate(0,0)';}
+stick.addEventListener('pointerdown',e=>{
+  if(!state.ready)return;e.stopPropagation();e.preventDefault();stickPointer=e.pointerId;stick.setPointerCapture(e.pointerId);moveStick(e);
+});
+stick.addEventListener('pointermove',moveStick);
+for(const event of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(event,stopStick);
+const keys=new Set();
+function updateKeys(){walking.input.x=Number(keys.has('d')||keys.has('ArrowRight'))-Number(keys.has('a')||keys.has('ArrowLeft'));walking.input.z=Number(keys.has('s')||keys.has('ArrowDown'))-Number(keys.has('w')||keys.has('ArrowUp'));emit('move');}
+window.addEventListener('keydown',e=>{
+  if(e.target.closest('button, input, textarea, [role="tablist"]')||$('#dialog').open)return;
+  if(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();keys.add(e.key);updateKeys();}
+});
+window.addEventListener('keyup',e=>{if(keys.delete(e.key))updateKeys();});
+window.addEventListener('blur',()=>{keys.clear();stopStick();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();stopStick();}});
+$('#home').onclick=()=>{
+  stopStick();keys.clear();Object.assign(walking,StellaCore.motion());dragAngle=0;window.stellaGame.angle=0;emit('home');emit('camera');toast('Back at the dressing rug ✧');
+};
 $('#help').onclick=()=>$('#dialog').showModal();
 $('#close').onclick=$('#okay').onclick=()=>$('#dialog').close();
 let audio=null,soundOn=false;
@@ -146,33 +148,16 @@ $('#sound').onclick=async()=>{
     toast(soundOn?'Ambient sound on':'Ambient sound off');
   }catch{toast('Ambient sound isn’t available in this browser.');}
 };
-function setLoading(message, failed=false) {
-  $('#loading').hidden=state.ready;$('#loading').textContent=message;
-  $('#retry').hidden=!failed;
-  ['#left','#right','#photo'].forEach(s=>$(s).disabled=!state.ready);
-  if(state.tab==='poses')render();
+function setLoading(message,failed=false){
+  $('#loading').hidden=state.ready;$('#loading').textContent=message;$('#retry').hidden=!failed;
+  $('#home').disabled=$('#photo').disabled=!state.ready;
+  stick.setAttribute('aria-disabled',String(!state.ready));
+  if(state.tab==='stella')render();
 }
-function loadStella() {
-  state.failed=false;state.ready=false;setLoading('Stella is getting ready…');
-  const img=new Image();
-  img.onload=()=>{
-    try {
-      frames=poses.map(p=>{
-        const [a,b]=p.crop,c=document.createElement('canvas');c.width=b-a;c.height=760;
-        const x=c.getContext('2d',{willReadFrequently:true});
-        x.drawImage(img,a,40,b-a,760,0,0,b-a,760);
-        const d=x.getImageData(0,0,c.width,c.height);
-        removeBackground(d.data,c.width,c.height,p.garments,a,40);
-        x.putImageData(d,0,0);return c;
-      });
-      state.ready=true;setPose(state.pose);setLoading('');render();emit('ready');
-    }catch {state.failed=true;setLoading('Stella couldn’t load. Please try again.',true);}
-  };
-  img.onerror=()=>{state.failed=true;setLoading('Stella’s image couldn’t load. Please try again.',true);};
-  // Register load handlers before setting src, including for cached or embedded images.
-  img.src=window.STELLA_IMAGE||'stella.jpg';
-}
-$('#retry').onclick=loadStella;
+window.addEventListener('stella:loaded',()=>{state.ready=true;state.failed=false;setLoading('');});
+window.addEventListener('stella:failed',()=>{state.ready=false;state.failed=true;setLoading('3D Stella couldn’t load. Check your connection and try again.',true);});
+$('#retry').onclick=()=>location.reload();
+setLoading('Getting 3D Stella ready…');
 function downloadCanvas(c) {
   return new Promise((resolve,reject)=>c.toBlob(blob=>{
     if(!blob){reject(new Error('Photo unavailable'));return;}
@@ -181,31 +166,14 @@ function downloadCanvas(c) {
     setTimeout(()=>URL.revokeObjectURL(url),30000);resolve();
   },'image/png'));
 }
-function fallbackPhoto() {
-  const c=document.createElement('canvas');c.width=1000;c.height=1100;
-  const x=c.getContext('2d');
-  x.fillStyle=state.palette.wall;x.fillRect(0,0,1000,1100);
-  x.fillStyle='#d9bea0';x.fillRect(0,820,1000,280);
-  x.fillStyle=state.palette.color;x.beginPath();x.ellipse(500,900,330,110,0,0,Math.PI*2);x.fill();
-  for(const left of [65,715]){
-    x.fillStyle='#faf4e9';x.fillRect(left,170,220,650);x.fillStyle='#dfd2c1';x.fillRect(left+12,182,196,616);
-    for(let j=0;j<4;j++){x.fillStyle='#faf4e9';x.fillRect(left,310+j*145,220,12);x.fillStyle=j%2?'#c4b299':state.palette.color;x.fillRect(left+40,280+j*145,80,30);}
-  }
-  x.fillStyle='#bfa37a';x.beginPath();x.roundRect(345,180,310,590,[150,150,5,5]);x.fill();
-  x.fillStyle='#e4e4d8';x.beginPath();x.roundRect(357,192,286,565,[140,140,3,3]);x.fill();
-  x.drawImage(canvas,380,165,240,815);
-  if(state.night){x.fillStyle='rgba(35,24,55,.22)';x.fillRect(0,0,1000,1100);}
-  x.fillStyle='#584b60';x.font='italic 45px Georgia';x.textAlign='center';x.fillText('Stella’s closet',500,85);
-  x.font='16px sans-serif';x.fillText('A little moment of creativity · '+poses[state.pose].name,500,1040);
-  return c;
-}
 $('#photo').onclick=async()=>{
   if(!state.ready)return;
   $('#photo').disabled=true;
   try {
-    await downloadCanvas(window.stellaCapture?window.stellaCapture():fallbackPhoto());
-    toast(window.stellaCapture?'Your closet moment, saved ✧':'Illustrated keepsake saved ✧');
+    if(!window.stellaCapture)throw Error('3D unavailable');
+    await downloadCanvas(window.stellaCapture());
+    toast('Your closet moment, saved ✧');
   }catch{toast('The photo couldn’t be saved. Please try again.');}
   finally{$('#photo').disabled=false;}
 };
-loadStella();
+
