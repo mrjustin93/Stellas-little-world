@@ -1,0 +1,46 @@
+[
+  {
+    "size": "390x844",
+    "rigged_3d": true,
+    "joystick_walk_and_stop": true,
+    "floor_tap_walk": true,
+    "home_reset": true,
+    "wave": true,
+    "layout_and_controls": true,
+    "errors": []
+  },
+  {
+    "size": "375x667",
+    "rigged_3d": true,
+    "joystick_walk_and_stop": true,
+    "floor_tap_walk": true,
+    "home_reset": true,
+    "wave": true,
+    "layout_and_controls": true,
+    "errors": []
+  },
+  {
+    "size": "360x740",
+    "rigged_3d": true,
+    "joystick_walk_and_stop": true,
+    "floor_tap_walk": true,
+    "home_reset": true,
+    "wave": true,
+    "layout_and_controls": true,
+    "errors": []
+  },
+  {
+    "size": "844x390",
+    "rigged_3d": true,
+    "joystick_walk_and_stop": true,
+    "floor_tap_walk": true,
+    "home_reset": true,
+    "wave": true,
+    "layout_and_controls": true,
+    "errors": []
+  },
+  {
+    "3d_failure_recovery": true,
+    "no_sprite_fallback": true
+  }
+]
