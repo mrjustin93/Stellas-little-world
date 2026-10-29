@@ -8,10 +8,10 @@ const T = await Promise.race([
   import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js'),
   new Promise((_,reject)=>{dependencyTimer=setTimeout(()=>reject(new Error('3D loading timed out')),10000);})
 ]).finally(()=>clearTimeout(dependencyTimer));
-renderer=new T.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.setClearColor(0xeee5db);renderer.domElement.className='webgl-room';renderer.domElement.setAttribute('aria-label','3D walk-in closet with Stella, shelves, vanity and dressing platform');// Attach only after the scene is ready, so failed setup never hides the fallback.
+renderer=new T.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:false});renderer.setPixelRatio(Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1.5:2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.setClearColor(0xeee5db);renderer.domElement.className='webgl-room';renderer.domElement.setAttribute('aria-label','3D walk-in closet with Stella, shelves, vanity and dressing platform');// Attach only after the scene is ready, so failed setup never hides the fallback.
 
 const scene=new T.Scene(),camera=new T.PerspectiveCamera(37,1,.1,100);camera.position.set(0,3.25,10.5);const target=new T.Vector3(0,2.1,0);camera.lookAt(target);
-const ambient=new T.HemisphereLight(0xfff5e5,0x9f8d7a,2.4);scene.add(ambient);const sun=new T.DirectionalLight(0xfff5df,3);sun.position.set(-4,8,6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-7,right:7,top:7,bottom:-7});sun.shadow.bias=-.001;scene.add(sun);
+const ambient=new T.HemisphereLight(0xfff5e5,0x9f8d7a,2.4);scene.add(ambient);const sun=new T.DirectionalLight(0xfff5df,3);sun.position.set(-4,8,6);sun.castShadow=true;sun.shadow.mapSize.set(matchMedia('(pointer: coarse)').matches?1024:2048,matchMedia('(pointer: coarse)').matches?1024:2048);Object.assign(sun.shadow.camera,{left:-7,right:7,top:7,bottom:-7});sun.shadow.bias=-.001;scene.add(sun);
 const mats={wood:new T.MeshStandardMaterial({color:0xf4e8d6,roughness:.7}),wall:new T.MeshStandardMaterial({color:0xeee6dc}),floor:new T.MeshStandardMaterial({color:0xcbb08e,roughness:.8}),gold:new T.MeshStandardMaterial({color:0xb79b6e,metalness:.65,roughness:.35}),purple:new T.MeshStandardMaterial({color:0xc4b1cf,roughness:.95}),rose:new T.MeshStandardMaterial({color:0xd3b3ae}),sage:new T.MeshStandardMaterial({color:0x9aa78a}),mirror:new T.MeshStandardMaterial({color:0xd1dcd7,metalness:.55,roughness:.13})};
 function box(x,y,z,w,h,d,mat=mats.wood){const o=new T.Mesh(new T.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}
 function cylinder(x,y,z,r,h,mat=mats.purple,r2=r){const o=new T.Mesh(new T.CylinderGeometry(r,r2,h,48),mat);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}
@@ -39,10 +39,11 @@ function fitCamera() {
   renderer.setSize(host.clientWidth,host.clientHeight);
   camera.aspect=host.clientWidth/host.clientHeight;
   camera.updateProjectionMatrix();
-  const distance=Math.max(10.5,6.8/(2*Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect));
+  const compact=matchMedia('(max-width:760px), (max-height:520px)').matches;
+  const distance=compact?Math.max(6.7,3.6/(2*Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect)):Math.max(10.5,6.8/(2*Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect));
   const angle=game.angle||0;
   camera.position.set(Math.sin(angle)*distance,3.25,Math.cos(angle)*distance);
-  camera.lookAt(target);
+  camera.lookAt(compact?new T.Vector3(0,1.5,0):target);
   sprite.rotation.y=angle;
   dirty=true;
 }

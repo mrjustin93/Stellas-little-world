@@ -1,0 +1,13 @@
+{
+  "webgl_loaded": true,
+  "all_eight_poses": true,
+  "turn_arrows": true,
+  "pause_resume": true,
+  "evening_photo_download": true,
+  "palette_persistence": true,
+  "help_dialog": true,
+  "mobile_390px_no_horizontal_overflow": true,
+  "reduced_motion": true,
+  "dependency_failure_fallback": true,
+  "page_errors": []
+}
