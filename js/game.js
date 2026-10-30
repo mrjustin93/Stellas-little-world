@@ -1,5 +1,5 @@
 import {DressingRoom} from './dressing-room.js';
-import {restoreClothes} from './clothing.js';
+import {undress} from './clothing.js';
 import {OUTFITS,outfitId} from './wardrobe.js';
 import {createCabin,createBathroom} from './scene.js';
 import {Player} from './player.js';
@@ -22,7 +22,8 @@ export class Game {
   this.sound=new CozySound();this.clock=new WorldClock();this.player=new Player();this.inventory=newInventory();this.keepsakes=createKeepsakes();this.farming=new FarmingActions();this.running=false;this.wideView=false;this.toastTime=0;
   this.interactions=new Interactions();this.started=false;this.saveTimer=0;this.last=0;this.time=0;this.flowerCooldown=0;
   try{this.resumed=loadProgress(this,localStorage);}catch{this.resumed=false;}
-  this.player.clothes=restoreClothes(this.player.clothes,this.player.outfit);
+  // Base-clothing edition. The full catalogue remains available for future work.
+  this.player.clothes=undress();
   syncKeepsakes(this);
   this.renderer=new Renderer(document.querySelector('#game'));
   this.mapPanel=document.querySelector('#map-panel');
@@ -37,6 +38,7 @@ export class Game {
   document.querySelector('#start').textContent=this.resumed?'Welcome back →':'Step inside →';
   document.querySelector('#start').onclick=()=>{this.started=true;document.querySelector('#welcome').hidden=true;this.closeOverlays();this.input.reset();this.save();};
   document.querySelector('#help').onclick=()=>{if(this.farming.active)return;this.closeOverlays();this.input.reset();this.interactions.activate({message:'Drag the joystick or use WASD / arrows. Step close to a garden plot and tap Interact to plant, water or harvest. Watch Stella finish her little task. Strawberries ripen after one game day and never die; the cabin basket has free seeds. Visit Luna and choose Take Luna along; Bag lets you return her home. Harvests unlock decorations in Bag → Decorate. Map shows the wider world. Tap Walk to jog, or the clock to pause time. Progress saves here automatically.'});};
+  document.querySelector('#closet-button').onclick=()=>{if(this.started&&!this.farming.active)this.showCloset();};
   document.querySelector('#bag').onclick=()=>this.showBag();
   document.querySelector('#map-button').onclick=()=>{if(this.farming.active)return;this.interactions.close();this.input.reset();this.mapPanel.hidden=!this.mapPanel.hidden;if(!this.mapPanel.hidden)drawMap(document.querySelector('#map-canvas'),this);};
   document.querySelector('#close-map').onclick=()=>{this.mapPanel.hidden=true;this.input.reset();};
@@ -122,7 +124,7 @@ export class Game {
   }
   if(!this.interactions.open||!['closet','bath'].includes(this.interactions.active?.id))this.player.changing=false;
   this.player.activity=this.farming.active;
-  for(const id of ['help','bag','map-button','journal','pace','world-clock','interact'])document.getElementById(id).disabled=!!this.farming.active;
+  for(const id of ['help','closet-button','bag','map-button','journal','pace','world-clock','interact'])document.getElementById(id).disabled=!!this.farming.active;
   this.toastTime=Math.max(0,this.toastTime-dt);document.querySelector('#toast').hidden=this.toastTime===0;
   this.renderer.zoom=this.wideView?.85:1;
   const view=document.querySelector('#view-toggle');view.textContent=this.wideView?'View: Wide':'View: Cozy';view.setAttribute('aria-pressed',String(this.wideView));
@@ -133,7 +135,7 @@ export class Game {
   const clockButton=document.querySelector('#world-clock');clockButton.textContent=this.clock.label+(this.clock.paused?' · paused':'');clockButton.setAttribute('aria-pressed',String(this.clock.paused));
   const pace=document.querySelector('#pace');pace.textContent=this.running?'Jog':'Walk';pace.setAttribute('aria-pressed',String(this.running));
   const region=this.scene.id==='bathroom'?'BATHROOM':this.scene.id==='cabin'?'HOME':this.player.x>570?(this.player.y>390?'PICNIC CLEARING':'FLOWER MEADOW'):this.player.x>470?'PINE TRAIL':'GARDEN';
-  document.querySelector('.location small').textContent=region+' · V0.18';
+  document.querySelector('.location small').textContent=region+' · V0.19';
   this.interactions.update(dt);const near=this.started&&!blocked?nearest(this.player,this.scene.objects):null;
   document.querySelector('#hint').textContent=near?`♡ ${near.type==='plot'||near.id==='gate'?near.message:near.id==='door'?'Explore the garden':near.id==='home'?'Go inside':near.id==='closet'?'Change clothes':near.id==='bathroom-door'?'Visit the bathroom':near.id==='bathroom-exit'?'Return to the cabin':near.id==='luna'?'Say hello to Luna':near.id==='seeds'?'Free strawberry seeds':near.id==='flowers'?'Pick a meadow flower':'Enjoy a little moment'}`:'';
   document.querySelector('#hint').hidden=this.toastTime>0||!!this.farming.active;

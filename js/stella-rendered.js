@@ -10,8 +10,23 @@ import {activityRig,paintHeldProp,paintActivityGround,paintActivityEffects} from
 import {paintLeg,paintArm} from './limbs.js';
 import {paintShoe} from './shoes.js';
 export class RenderedStella {
- constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.heads=[];this.bodies=[];this.outfits={};this.garments=new Map();this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
+ constructor(){this.referenceHeads=[];this.referenceReady=false;this.referenceImage=new Image();this.referenceImage.onload=()=>this.prepareReference();this.referenceImage.src=new URL('../assets/characters/stella-heads-v19.svg',import.meta.url).href;this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.heads=[];this.bodies=[];this.outfits={};this.garments=new Map();this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
+ }
+ prepareReference(){
+  const image=this.referenceImage,cw=image.width/4,ch=image.height/2;
+  for(let i=0;i<8;i++){
+   const cell=document.createElement('canvas');cell.width=cw;cell.height=ch;const cg=cell.getContext('2d');cg.drawImage(image,(i%4)*cw,Math.floor(i/4)*ch,cw,ch,0,0,cw,ch);
+   const pixels=cg.getImageData(0,0,cw,ch).data;let left=cw,right=0,top=ch,bottom=0;
+   for(let y=0;y<ch;y++)for(let x=0;x<cw;x++)if(pixels[(y*cw+x)*4+3]>24){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+   let sum=0,count=0;for(let y=bottom-10;y<=bottom;y++)for(let x=left;x<=right;x++)if(pixels[(y*cw+x)*4+3]>100){sum+=x;count++;}
+   const neck=count?sum/count:(left+right)/2,scale=70/(bottom-top+1),angle=i*Math.PI/4,nx=80+Math.sin(angle)*7;
+   const head=document.createElement('canvas');head.width=640;head.height=1280;head.neckX=nx;head.pixelRatio=4;
+   const hg=head.getContext('2d');hg.scale(4,4);hg.drawImage(cell,left,top,right-left+1,bottom-top+1,nx+(left-neck)*scale,42,(right-left+1)*scale,70);
+   hg.globalCompositeOperation='destination-out';const fade=hg.createLinearGradient(0,105,0,113);fade.addColorStop(0,'transparent');fade.addColorStop(1,'black');hg.fillStyle=fade;hg.fillRect(0,105,160,8);
+   this.referenceHeads.push(head);
+  }
+  this.referenceReady=true;
  }
  prepare(){try{
   const keys=this.metadata.frames.map(f=>{const c=document.createElement('canvas');c.width=160;c.height=320;const g=c.getContext('2d');const height=304,width=f.w/f.h*height;g.drawImage(this.image,f.x,f.y,f.w,f.h,(160-width)/2,8,width,height);return c;});
@@ -91,7 +106,7 @@ export class RenderedStella {
   if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);
   if(items){
    const axis=rig.bodyAxis||{x:0,y:1},shoulders=fittedArms.map(arm=>{const y=(arm.shoulder.y-rig.body.y)/axis.y;return {x:80+arm.shoulder.x-rig.body.x-axis.x*y,y:196+y};});
-   g.translate(-80,-196);paintClothedBody(a,this.heads[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')},shoulders);
+   g.translate(-80,-196);paintClothedBody(a,this.referenceReady?this.referenceHeads[Math.round(index/4)%8]:this.heads[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')},shoulders);
   }else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
   if(Math.cos(angle)>=0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   for(const arm of arms)if(!behind(arm)){paintArm(a,arm,palette,sleeve);if(items)paintWristAccessory(a,arm,items.wrist,arm.index);}
@@ -111,5 +126,5 @@ export class RenderedStella {
   const rig=activityRig(p.gait,0,isJogging(p.speed),angle,activity,p.carryingLuna===true);
   paintActivityEffects(a,p,rig,activity,angle,activity.kind==='water'&&Math.cos(angle)<0?'splash':'all');
  }
- portrait(canvas){if(!this.ready)return;const g=canvas.getContext('2d');g.clearRect(0,0,128,128);const gradient=g.createLinearGradient(0,0,128,128);gradient.addColorStop(0,'#fae4d2');gradient.addColorStop(1,'#e9b9cc');g.fillStyle=gradient;g.fillRect(0,0,128,128);g.drawImage(this.views[0],28,4,104,105,0,0,128,128);}
+ portrait(canvas){if(!this.ready)return;const g=canvas.getContext('2d');g.clearRect(0,0,128,128);const gradient=g.createLinearGradient(0,0,128,128);gradient.addColorStop(0,'#fae4d2');gradient.addColorStop(1,'#e9b9cc');g.fillStyle=gradient;g.fillRect(0,0,128,128);if(this.referenceReady)g.drawImage(this.referenceHeads[0],152,152,336,320,0,0,128,128);else g.drawImage(this.views[0],28,4,104,105,0,0,128,128);}
 }

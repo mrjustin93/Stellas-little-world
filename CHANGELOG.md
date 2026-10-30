@@ -1,3 +1,11 @@
+# v0.19 — Mobile closet and reference-based Stella
+
+- Character-first phone layout with larger touch targets, landscape support, direct Closet access, swipe rotation, face view and walking preview.
+- Base clothing only: white tank and white boyshort underwear, with the existing clothing catalogue retained for future work.
+- New directional face and pixie-hair artwork based on the supplied original reference; smaller head proportions, clearer high-density previews, refined tank/shoulder joins, hands and bare feet.
+- Save failures keep the closet open with a retry message. Background controls are inert while the closet is open; keyboard and pointer interactions remain isolated from game movement.
+- Validation: 72 unit tests; browser checks at 320×568, 390×844, 412×915, 844×390 and 1280×800. Physical phone testing remains pending.
+
 # Stella’s Little World
 
 ## 0.18 — Complete feet and connected character rendering
