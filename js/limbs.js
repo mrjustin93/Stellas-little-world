@@ -17,7 +17,7 @@ export function drawJointedLimb(g,start,joint,end,widths,colors){
  const side=sign=>({start:edge(start,nu,widths[0]/2,sign),before:edge({x:joint.x-upper.x*round,y:joint.y-upper.y*round},nu,radius,sign),bend:{x:joint.x+sum.x/den*radius*sign,y:joint.y+sum.y/den*radius*sign},after:edge({x:joint.x+lower.x*round,y:joint.y+lower.y*round},nl,radius,sign),end:edge(end,nl,widths[2]/2,sign)});
  const left=side(1),right=side(-1),cx=(start.x+joint.x+end.x)/3,w=Math.max(...widths);
  const shade=g.createLinearGradient(cx-w*.6,0,cx+w*.6,0);shade.addColorStop(0,colors[0]);shade.addColorStop(.44,colors[1]);shade.addColorStop(1,colors[2]);
- g.fillStyle=shade;g.beginPath();g.moveTo(left.start.x,left.start.y);g.lineTo(left.before.x,left.before.y);g.quadraticCurveTo(left.bend.x,left.bend.y,left.after.x,left.after.y);g.lineTo(left.end.x,left.end.y);g.quadraticCurveTo(end.x+lower.x*widths[2]*.2,end.y+lower.y*widths[2]*.2,right.end.x,right.end.y);g.lineTo(right.after.x,right.after.y);g.quadraticCurveTo(right.bend.x,right.bend.y,right.before.x,right.before.y);g.lineTo(right.start.x,right.start.y);g.quadraticCurveTo(start.x-upper.x*widths[0]*.55,start.y-upper.y*widths[0]*.55,left.start.x,left.start.y);g.closePath();g.fill();
+ g.fillStyle=shade;g.beginPath();g.moveTo(left.start.x,left.start.y);g.lineTo(left.before.x,left.before.y);g.quadraticCurveTo(left.bend.x,left.bend.y,left.after.x,left.after.y);g.lineTo(left.end.x,left.end.y);g.quadraticCurveTo(end.x+lower.x*widths[2]*.5,end.y+lower.y*widths[2]*.5,right.end.x,right.end.y);g.lineTo(right.after.x,right.after.y);g.quadraticCurveTo(right.bend.x,right.bend.y,right.before.x,right.before.y);g.lineTo(right.start.x,right.start.y);g.quadraticCurveTo(start.x-upper.x*widths[0]*.55,start.y-upper.y*widths[0]*.55,left.start.x,left.start.y);g.closePath();g.fill();
 }
 export function paintLeg(a,rig,width,socks=true){
  const g=a.g,skin=['#ffdfb9','#f2c1a0','#d99b84'];
@@ -29,7 +29,7 @@ export function paintLeg(a,rig,width,socks=true){
 export function paintArm(a,rig,palette,style='long'){
  const g=a.g,pink=palette||['#f8c5d8','#eaa0c0','#c47e9f'];
  if(style==='bare'||style==='tee'){
-  const skin=['#ffdfb9','#f2c1a0','#d99b84'];drawJointedLimb(g,rig.shoulder,rig.elbow,rig.wrist,[16,12,9],skin);drawLimb(g,rig.wrist,rig.hand,9,8,skin);a.oval(rig.hand.x,rig.hand.y,4,4,skin[1]);
+  const skin=['#ffdfb9','#f2c1a0','#d99b84'];drawJointedLimb(g,rig.shoulder,rig.elbow,rig.hand,[16,11,8],skin);g.beginPath();g.ellipse(rig.hand.x,rig.hand.y-1,4,5,0,0,Math.PI*2);g.fill();
   if(style==='tee'){const end={x:rig.shoulder.x+(rig.elbow.x-rig.shoulder.x)*.48,y:rig.shoulder.y+(rig.elbow.y-rig.shoulder.y)*.48};drawLimb(g,rig.shoulder,end,21,18,pink);}return;
  }
  a.oval(rig.shoulder.x,rig.shoulder.y,10.5,9,a.gradient(rig.shoulder.x-10,rig.shoulder.y-9,21,pink[0],pink[2]));
