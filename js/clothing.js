@@ -11,10 +11,10 @@ export const CLOTHING={
  ears:[item('none','No earrings','none',''),item('pearl-studs','Pearl studs','stud','#fff5df'),item('gold-hoops','Gold hoops','hoop','#dfbd70'),item('pink-drops','Pink drop earrings','drop','#ec9cbd')]
 };
 export const CATEGORY_LABELS={top:'Tops & dresses',bottom:'Bottoms',underwear:'Underwear',shoes:'Footwear',head:'Hats & hair',neck:'Necklaces',wrist:'Bracelets & watches',ears:'Earrings'};
-export const DEFAULT_CLOTHES={top:'rose-hoodie',bottom:'rose-shorts',underwear:'white-briefs',shoes:'pink-sneakers',head:'none',neck:'heart',wrist:'none',ears:'none'};
+export const DEFAULT_CLOTHES={top:'white-tank',bottom:'underwear',underwear:'white-boyshorts',shoes:'bare',head:'none',neck:'none',wrist:'none',ears:'none'};
 export function restoreClothes(value,legacy='rose'){
  const result={...DEFAULT_CLOTHES};if(legacy==='mint'||legacy==='lavender'){result.top=legacy+'-hoodie';result.bottom=legacy+'-shorts';}
  if(value&&typeof value==='object'&&!Array.isArray(value))for(const key of Object.keys(CLOTHING))if(CLOTHING[key].some(i=>i.id===value[key]))result[key]=value[key];return result;
 }
 export const clothingItems=state=>Object.fromEntries(Object.keys(CLOTHING).map(key=>[key,CLOTHING[key].find(i=>i.id===state[key])||CLOTHING[key].find(i=>i.id===DEFAULT_CLOTHES[key])]));
-export const undress=()=>({...DEFAULT_CLOTHES,top:'white-tank',bottom:'underwear',underwear:'white-briefs',shoes:'bare',neck:'none'});
+export const undress=()=>({...DEFAULT_CLOTHES,top:'white-tank',bottom:'underwear',underwear:'white-boyshorts',shoes:'bare',neck:'none'});
