@@ -10,7 +10,7 @@ export function shade(color,amount){
  const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
  return '#'+rgb.map(c=>Math.round(amount>=0?c+(255-c)*amount:c*(1+amount)).toString(16).padStart(2,'0')).join('');
 }
-export const fabric=color=>[shade(color,.28),color,shade(color,-.22)];
+export const fabric=color=>[shade(color,.28),color,shade(color,-.14)];
 function material(g,cx,w,color){const [light,mid,dark]=fabric(color),v=g.createLinearGradient(cx-w,0,cx+w,0);v.addColorStop(0,dark);v.addColorStop(.28,light);v.addColorStop(.62,mid);v.addColorStop(1,dark);return v;}
 function surface(g,path,fill,edge){g.beginPath();path(g);g.closePath();g.fillStyle=fill;g.fill();if(edge){g.strokeStyle=edge;g.lineWidth=.8;g.stroke();}}
 function torsoPath(g,cx,w,top=108,hem=177){
@@ -21,16 +21,16 @@ export function paintClothedBody(a,image,angle,items,textures={},shoulders=null)
  const g=a.g,profile=Math.abs(Math.sin(angle)),front=Math.cos(angle),cx=80+Math.sin(angle)*7,w=30-11*profile,top=items.top,bottom=items.bottom,under=items.underwear;
  const nx=image.neckX??cx;
  surface(g,p=>{p.moveTo(nx-8,89);p.lineTo(nx+8,89);p.bezierCurveTo(nx+8,101,cx+8,107,cx+10,118);p.quadraticCurveTo(cx,121,cx-10,118);p.bezierCurveTo(cx-8,107,nx-8,101,nx-8,89);},a.gradient(nx,89,30,'#e8ae91','#f6cba9'));
- surface(g,p=>{torsoPath(p,cx,w-1,103,191);},material(g,cx,w,'#f3c6a5'));
+ surface(g,p=>{p.moveTo(nx-8,100);p.quadraticCurveTo(cx-15,107,cx-w+2,110);p.quadraticCurveTo(cx-w-3,119,cx-w+1,133);p.bezierCurveTo(cx-w+4,151,80-w+10,167,80-w+3,191);p.quadraticCurveTo(80,197,80+w-3,191);p.bezierCurveTo(80+w-10,167,cx+w-4,151,cx+w-1,133);p.quadraticCurveTo(cx+w+3,119,cx+w-2,110);p.quadraticCurveTo(cx+15,107,nx+8,100);},material(g,cx,w,'#f3c6a5'));
  a.oval(cx,106,7,2,'#c88f7c44');
  if(top.style==='tank'){
-  surface(g,p=>{p.moveTo(cx-w+6,123);p.quadraticCurveTo(cx,137,cx+w-6,123);p.bezierCurveTo(cx+w-3,144,80+w-9,158,80+w-6,175);p.quadraticCurveTo(80,179,80-w+6,175);p.bezierCurveTo(80-w+9,158,cx-w+3,144,cx-w+6,123);},material(g,cx,w,top.color),shade(top.color,-.15));
+  surface(g,p=>{p.moveTo(cx-w+6,123);p.quadraticCurveTo(cx,137,cx+w-6,123);p.bezierCurveTo(cx+w-3,144,80+w-9,158,80+w-6,181);p.quadraticCurveTo(80,185,80-w+6,181);p.bezierCurveTo(80-w+9,158,cx-w+3,144,cx-w+6,123);},material(g,cx,w,top.color),shade(top.color,-.15));
   for(const sign of [-1,1]){
    const shoulder=shoulders?.[sign<0?0:1],x=shoulder?shoulder.x+(cx-shoulder.x)*.18:cx+sign*(w-9),y=shoulder?.y??110;
    // Straps follow the actual shoulder height as the far shoulder turns away.
-   a.line([[cx+sign*(w-7)*front,126],[x,y]],shade(top.color,.1),6);
+   a.line([[x,127],[x,y]],shade(top.color,.1),4);
   }
-  a.line([[80-w+8,173],[80+w-8,173]],shade(top.color,-.12),1);
+  a.line([[80-w+8,180],[80+w-8,180]],shade(top.color,-.12),1);
   a.line([[cx-w+10,149],[cx-w+12,162]],'#ffffff66',1);
  }else{
   surface(g,p=>torsoPath(p,cx,w,108,177),material(g,cx,w,top.color),shade(top.color,-.22));
@@ -73,7 +73,7 @@ export function paintClothedBody(a,image,angle,items,textures={},shoulders=null)
  }
  if(textures.bottom&&top.style!=='dress')g.drawImage(textures.bottom,0,178,160,31,-Math.sin(angle)*7,178,160,31);
  // Keep Stella's original face and pixie-cut texture clean at the neck join.
- g.drawImage(image,0,0,160,113,0,0,160,113);
+ const density=image.pixelRatio||1;g.drawImage(image,0,0,160*density,113*density,0,0,160,113);
  if(items.neck.style!=='none'&&front>.05){
   a.line([[cx-9,107],[cx-5,118],[cx+5,118],[cx+9,107]],items.neck.color,1.2);
   if(items.neck.style==='pearl')for(let i=-2;i<=2;i++)a.oval(cx+i*3.5,117+Math.cos(i)*2,1.8,1.8,'#fff8e6');
