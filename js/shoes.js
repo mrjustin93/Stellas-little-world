@@ -35,7 +35,7 @@ export function paintShoe(a,ankle,angle,roll,blend,item){
  const color=item?.color||'#dda1ba',style=item?.style||'sneakers';
  const g=a.g,s=shoeGeometry(angle,roll,blend),left=-s.width/2+s.toe,right=left+s.width;
  g.save();g.translate(ankle.x,ankle.y);g.rotate(s.roll);g.scale(s.mirror,1);
- if(style==='bare'){bareFoot(a,s);g.restore();return;}
+ if(style==='bare'){s.width*=.8;s.toe*=.8;bareFoot(a,s);g.restore();return;}
  if(style==='slippers'){
   bareFoot(a,s);
   a.round(left,6,s.width,4,shade(color,-.26),2);
