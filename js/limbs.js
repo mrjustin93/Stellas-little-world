@@ -8,7 +8,7 @@ export function drawLimb(g,start,end,wide,narrow,colors){
 }
 // One silhouette and one material across a bent joint. Separate thigh/calf
 // fills leave square ends and a visible shading seam when a knee bends.
-export function drawJointedLimb(g,start,joint,end,widths,colors){
+export function drawJointedLimb(g,start,joint,end,widths,colors,contour=false){
  const segment=(a,b)=>{const length=Math.max(.001,Math.hypot(b.x-a.x,b.y-a.y));return {x:(b.x-a.x)/length,y:(b.y-a.y)/length,length};};
  const upper=segment(start,joint),lower=segment(joint,end),normal=u=>({x:-u.y,y:u.x}),nu=normal(upper),nl=normal(lower);
  const radius=widths[1]/2,round=Math.min(radius*.85,upper.length*.25,lower.length*.25);
@@ -16,12 +16,19 @@ export function drawJointedLimb(g,start,joint,end,widths,colors){
  const edge=(p,n,r,sign)=>({x:p.x+n.x*r*sign,y:p.y+n.y*r*sign});
  const side=sign=>({start:edge(start,nu,widths[0]/2,sign),before:edge({x:joint.x-upper.x*round,y:joint.y-upper.y*round},nu,radius,sign),bend:{x:joint.x+sum.x/den*radius*sign,y:joint.y+sum.y/den*radius*sign},after:edge({x:joint.x+lower.x*round,y:joint.y+lower.y*round},nl,radius,sign),end:edge(end,nl,widths[2]/2,sign)});
  const left=side(1),right=side(-1),cx=(start.x+joint.x+end.x)/3,w=Math.max(...widths);
+ const muscle=(sign,lowerPart)=>{
+  const from=lowerPart?joint:start,to=lowerPart?end:joint,n=lowerPart?nl:nu,t=lowerPart?.33:.52,r=lowerPart?widths[1]*.64:widths[0]*.49;
+  return {x:from.x+(to.x-from.x)*t+n.x*r*sign,y:from.y+(to.y-from.y)*t+n.y*r*sign};
+ };
+ const follow=(point,sign,lowerPart)=>{if(contour){const control=muscle(sign,lowerPart);g.quadraticCurveTo(control.x,control.y,point.x,point.y);}else g.lineTo(point.x,point.y);};
  const shade=g.createLinearGradient(cx-w*.6,0,cx+w*.6,0);shade.addColorStop(0,colors[0]);shade.addColorStop(.44,colors[1]);shade.addColorStop(1,colors[2]);
- g.fillStyle=shade;g.beginPath();g.moveTo(left.start.x,left.start.y);g.lineTo(left.before.x,left.before.y);g.quadraticCurveTo(left.bend.x,left.bend.y,left.after.x,left.after.y);g.lineTo(left.end.x,left.end.y);g.quadraticCurveTo(end.x+lower.x*widths[2]*.2,end.y+lower.y*widths[2]*.2,right.end.x,right.end.y);g.lineTo(right.after.x,right.after.y);g.quadraticCurveTo(right.bend.x,right.bend.y,right.before.x,right.before.y);g.lineTo(right.start.x,right.start.y);g.quadraticCurveTo(start.x-upper.x*widths[0]*.55,start.y-upper.y*widths[0]*.55,left.start.x,left.start.y);g.closePath();g.fill();
+ g.fillStyle=shade;g.beginPath();g.moveTo(left.start.x,left.start.y);follow(left.before,1,false);g.quadraticCurveTo(left.bend.x,left.bend.y,left.after.x,left.after.y);follow(left.end,1,true);g.quadraticCurveTo(end.x+lower.x*widths[2]*.2,end.y+lower.y*widths[2]*.2,right.end.x,right.end.y);follow(right.after,-1,true);g.quadraticCurveTo(right.bend.x,right.bend.y,right.before.x,right.before.y);follow(right.start,-1,false);g.quadraticCurveTo(start.x-upper.x*widths[0]*.55,start.y-upper.y*widths[0]*.55,left.start.x,left.start.y);g.closePath();g.fill();
 }
 export function paintLeg(a,rig,width,socks=true){
  const g=a.g,skin=['#ffdfb9','#f2c1a0','#d99b84'];
- drawJointedLimb(g,rig.hip,rig.knee,rig.foot,[width,width*.63,width*.43],skin);
+ // Subtle muscle contours narrow at the knee and ankle without separate
+ // discs or shading seams, so the leg stays connected during crouching.
+ drawJointedLimb(g,rig.hip,rig.knee,rig.foot,[width,width*.63,width*.43],skin,true);
  const sock={x:rig.foot.x+(rig.knee.x-rig.foot.x)*.21,y:rig.foot.y+(rig.knee.y-rig.foot.y)*.21};
  if(socks)drawLimb(g,sock,rig.foot,width*.57,width*.53,['#fffaf0','#f8f1e5','#d9cbd0']);
 }

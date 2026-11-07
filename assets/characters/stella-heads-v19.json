@@ -1,0 +1,156 @@
+{
+  "image": "stella-heads-v19.png",
+  "version": 1,
+  "width": 1774,
+  "height": 887,
+  "directions": 8,
+  "alphaCutoff": 12,
+  "source": "Original generated head turnaround based on assets/reference/stella-appearance-2026-11.jpg; not sliced from the user reference.",
+  "alignment": "Frame crop includes head and short neck. chinY and neckX are relative to crop; neckX measured at lower neck. Front/back anatomical chin row approximated to keep consistent vertical scale. Render with crown near34, chin94, neck base107 in160x320 local coordinates; use per-frame anchors, not uniform cells.",
+  "frames": [
+    {
+      "name": "front",
+      "angle": 0,
+      "x": 90,
+      "y": 14,
+      "w": 286,
+      "h": 398,
+      "chinY": 326,
+      "neckX": 147.94,
+      "neckY": 396,
+      "hairTop": 3,
+      "alphaBounds": [
+        3,
+        3,
+        283,
+        397
+      ]
+    },
+    {
+      "name": "front-right",
+      "angle": 45,
+      "x": 512,
+      "y": 14,
+      "w": 303,
+      "h": 398,
+      "chinY": 327,
+      "neckX": 143.69,
+      "neckY": 396,
+      "hairTop": 3,
+      "alphaBounds": [
+        3,
+        3,
+        300,
+        397
+      ]
+    },
+    {
+      "name": "right",
+      "angle": 90,
+      "x": 923,
+      "y": 14,
+      "w": 336,
+      "h": 397,
+      "chinY": 326,
+      "neckX": 154.31,
+      "neckY": 395,
+      "hairTop": 3,
+      "alphaBounds": [
+        3,
+        3,
+        333,
+        396
+      ]
+    },
+    {
+      "name": "rear-right",
+      "angle": 135,
+      "x": 1398,
+      "y": 13,
+      "w": 309,
+      "h": 398,
+      "chinY": 327,
+      "neckX": 144.12,
+      "neckY": 396,
+      "hairTop": 3,
+      "alphaBounds": [
+        3,
+        3,
+        306,
+        397
+      ]
+    },
+    {
+      "name": "back",
+      "angle": 180,
+      "x": 90,
+      "y": 457,
+      "w": 293,
+      "h": 400,
+      "chinY": 327,
+      "neckX": 146.12,
+      "neckY": 398,
+      "hairTop": 3,
+      "alphaBounds": [
+        3,
+        3,
+        290,
+        399
+      ]
+    },
+    {
+      "name": "rear-left",
+      "angle": 225,
+      "x": 513,
+      "y": 455,
+      "w": 307,
+      "h": 402,
+      "chinY": 330,
+      "neckX": 167.88,
+      "neckY": 400,
+      "hairTop": 3,
+      "alphaBounds": [
+        3,
+        3,
+        304,
+        401
+      ]
+    },
+    {
+      "name": "left",
+      "angle": 270,
+      "x": 945,
+      "y": 463,
+      "w": 331,
+      "h": 394,
+      "chinY": 322,
+      "neckX": 187.25,
+      "neckY": 392,
+      "hairTop": 3,
+      "alphaBounds": [
+        3,
+        3,
+        328,
+        393
+      ]
+    },
+    {
+      "name": "front-left",
+      "angle": 315,
+      "x": 1395,
+      "y": 459,
+      "w": 321,
+      "h": 398,
+      "chinY": 326,
+      "neckX": 180.31,
+      "neckY": 396,
+      "hairTop": 3,
+      "alphaBounds": [
+        3,
+        3,
+        318,
+        397
+      ]
+    }
+  ]
+}
