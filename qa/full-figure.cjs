@@ -9,7 +9,7 @@ const fs=require('node:fs');
   const page=await browser.newPage({viewport:{width:412,height:892},isMobile:true,hasTouch:true,deviceScaleFactor:2});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto((process.env.GAME_URL||'http://127.0.0.1:8800/')+'?test');
-  await page.click('#start');await page.waitForFunction(()=>__game.renderer.stella.ready);
+  await page.click('#start');await page.waitForFunction(()=>__game.renderer.stella.ready&&__game.renderer.stella.referenceHeads.ready);
   const result=await page.evaluate(async()=>{
    const [{Art},{CLOTHING,restoreClothes},{paintShoe},{activityRig},{SCALE}]=await Promise.all([
     import('./js/art.js'),import('./js/clothing.js'),import('./js/shoes.js'),import('./js/activity-art.js'),import('./js/gait.js')

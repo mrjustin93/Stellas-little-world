@@ -1,5 +1,13 @@
 # Stella’s Little World
 
+## 0.19 — Stella photo reference
+
+- Added an original eight-view head atlas guided by the new adult Stella turnaround photo. The head has softer facial proportions, sandy blonde pixie hair and blue eyes, and follows all 32 gameplay facings. Preserved the earlier head as an asset-loading fallback.
+- Lengthened the leg chain modestly and refined continuous leg shading while keeping the same feet, stride, movement speed and collision.
+- Improved tank straps, neckline and cotton drape, and added white lounge shorts to the closet. Retained all existing wardrobe choices and saves.
+- Stored the supplied photo in assets/reference as a concept reference, not as a gameplay sprite sheet.
+
+
 ## 0.18 — Complete feet and connected character rendering
 
 - Rebuilt bare feet with an ankle, heel, instep and rounded toes. All six footwear choices have readable shapes, compact soles and directional details; boots have distinct shafts and heel panels replace rear sneaker laces.

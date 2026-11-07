@@ -12,9 +12,10 @@ export function shade(color,amount){
 }
 export const fabric=color=>[shade(color,.28),color,shade(color,-.22)];
 function material(g,cx,w,color){const [light,mid,dark]=fabric(color),v=g.createLinearGradient(cx-w,0,cx+w,0);v.addColorStop(0,dark);v.addColorStop(.28,light);v.addColorStop(.62,mid);v.addColorStop(1,dark);return v;}
+function cotton(g,cx,w,color){const v=g.createLinearGradient(cx-w,0,cx+w,0);v.addColorStop(0,shade(color,-.14));v.addColorStop(.24,shade(color,.14));v.addColorStop(.62,color);v.addColorStop(1,shade(color,-.12));return v;}
 function surface(g,path,fill,edge){g.beginPath();path(g);g.closePath();g.fillStyle=fill;g.fill();if(edge){g.strokeStyle=edge;g.lineWidth=.8;g.stroke();}}
 function torsoPath(g,cx,w,top=108,hem=177){
- g.moveTo(cx-w+7,top);g.quadraticCurveTo(cx-w-5,top+3,cx-w,top+24);g.bezierCurveTo(cx-w+2,148,80-w+7,158,80-w+5,hem);g.quadraticCurveTo(80,hem+4,80+w-5,hem);g.bezierCurveTo(80+w-7,158,cx+w-2,148,cx+w,top+24);g.quadraticCurveTo(cx+w+5,top+3,cx+w-7,top);
+ g.moveTo(cx-w+7,top);g.quadraticCurveTo(cx-w,top+3,cx-w,top+24);g.bezierCurveTo(cx-w+2,148,80-w+9,158,80-w+5,hem);g.quadraticCurveTo(80,hem+4,80+w-5,hem);g.bezierCurveTo(80+w-9,158,cx+w-2,148,cx+w,top+24);g.quadraticCurveTo(cx+w,top+3,cx+w-7,top);
 }
 // Sculpted silhouettes, opaque fabric and source shading share the same anchors.
 export function paintClothedBody(a,image,angle,items,textures={},shoulders=null){
@@ -24,17 +25,25 @@ export function paintClothedBody(a,image,angle,items,textures={},shoulders=null)
  surface(g,p=>{torsoPath(p,cx,w-1,103,191);},material(g,cx,w,'#f3c6a5'));
  a.oval(cx,106,7,2,'#c88f7c44');
  if(top.style==='tank'){
-  surface(g,p=>{p.moveTo(cx-w+6,123);p.quadraticCurveTo(cx,137,cx+w-6,123);p.bezierCurveTo(cx+w-3,144,80+w-9,158,80+w-6,175);p.quadraticCurveTo(80,179,80-w+6,175);p.bezierCurveTo(80-w+9,158,cx-w+3,144,cx-w+6,123);},material(g,cx,w,top.color),shade(top.color,-.15));
+  const side=Math.sin(angle),neckY=120+Math.max(0,front)*2,neckDepth=5+Math.max(0,front)*6,edge=w-4;
+  // A fitted opaque cotton camisole: shallow back binding, soft front scoop,
+  // and a waist/hem that follows the same hip anchor as the lower garment.
+  surface(g,p=>{p.moveTo(cx-edge,neckY);p.quadraticCurveTo(cx,neckY+neckDepth,cx+edge,neckY);p.bezierCurveTo(cx+w-1,142,80+w-9,157,80+w-5,176);p.quadraticCurveTo(80,179,80-w+5,176);p.bezierCurveTo(80-w+9,157,cx-w+1,142,cx-edge,neckY);},cotton(g,cx,w,top.color),shade(top.color,-.11));
+  g.beginPath();g.moveTo(cx-edge,neckY);g.quadraticCurveTo(cx,neckY+neckDepth,cx+edge,neckY);g.strokeStyle=shade(top.color,-.11);g.lineWidth=1.25;g.stroke();
   for(const sign of [-1,1]){
+   if(Math.abs(side)>.72&&sign===(side>0?1:-1))continue;
    const shoulder=shoulders?.[sign<0?0:1],x=shoulder?shoulder.x+(cx-shoulder.x)*.18:cx+sign*(w-9),y=shoulder?.y??110;
-   // Straps follow the actual shoulder height as the far shoulder turns away.
-   a.line([[cx+sign*(w-7)*front,126],[x,y]],shade(top.color,.1),6);
+   const endX=cx+sign*(w-5)*front+side*5,u=Math.max(-1,Math.min(1,(endX-cx)/edge)),endY=neckY+(1-u*u)*neckDepth*.5;
+   // Thin bindings turn with the chest; the far strap disappears in profile.
+   g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+(endX-x)*.18,y+8,endX,endY);g.strokeStyle=shade(top.color,-.1);g.lineWidth=3.2;g.lineCap='round';g.stroke();g.strokeStyle=shade(top.color,.12);g.lineWidth=2.2;g.stroke();
   }
-  a.line([[80-w+8,173],[80+w-8,173]],shade(top.color,-.12),1);
-  a.line([[cx-w+10,149],[cx-w+12,162]],'#ffffff66',1);
+  g.beginPath();g.moveTo(80-w+7,174);g.quadraticCurveTo(80,177,80+w-7,174);g.strokeStyle=shade(top.color,-.13);g.lineWidth=.9;g.stroke();
+  for(const [sx,sy,ex,ey] of [[cx-w+5,147,cx-5,151],[80+w-6,160,83,164],[80-w+7,167,75,169]]){g.beginPath();g.moveTo(sx,sy);g.quadraticCurveTo((sx+ex)*.5,sy+3,ex,ey);g.strokeStyle=shade(top.color,-.08);g.lineWidth=.7;g.stroke();}
  }else{
   surface(g,p=>torsoPath(p,cx,w,108,177),material(g,cx,w,top.color),shade(top.color,-.22));
-  a.oval(cx,110,10,front<0?4:7,shade(top.color,-.2));a.oval(cx,108,8,front<0?3:6,skin[1]);
+  const collarDepth=front<0?3:6;
+  surface(g,p=>{p.moveTo(cx-9,105);p.quadraticCurveTo(cx,108+collarDepth,cx+9,105);p.lineTo(cx+8,110);p.quadraticCurveTo(cx,115+collarDepth,cx-8,110);},shade(top.color,-.15));
+  surface(g,p=>{p.moveTo(cx-8,104);p.lineTo(cx+8,104);p.quadraticCurveTo(cx+7,109+collarDepth,cx,110+collarDepth);p.quadraticCurveTo(cx-7,109+collarDepth,cx-8,104);},skin[1]);
   if(top.style==='hoodie'||top.style==='cardigan'){
    if(front>.12){const opening=Math.max(3,11*front);a.round(cx-opening,120,opening*2,55,material(g,cx,opening,'#fff4e7'),3);for(const sign of [-1,1])a.line([[cx+sign*(opening+3),117],[cx+sign*(opening+2),175]],shade(top.color,.4),2);}
    else if(top.style==='hoodie'){surface(g,p=>{p.moveTo(cx-w+4,109);p.quadraticCurveTo(cx,104,cx+w-4,109);p.quadraticCurveTo(cx+w-1,130,cx,134);p.quadraticCurveTo(cx-w+1,130,cx-w+4,109);},material(g,cx,w,shade(top.color,.09)),shade(top.color,-.25));a.line([[cx-w+9,117],[cx,128],[cx+w-9,117]],'#fff4e544',1);}
@@ -56,6 +65,13 @@ export function paintClothedBody(a,image,angle,items,textures={},shoulders=null)
   for(let i=-2;i<=2;i++)a.line([[bx+i*9,190],[bx+i*14,235]],shade(color,i%2===0?.15:-.13),1.3);
   a.line([[bx-half+7,182],[bx,183],[bx+half-7,182]],shade(color,-.18),2);
   a.line([[bx-half-5,236],[bx,240],[bx+half+5,236]],shade(color,.2),1);
+ }else if(b.style==='lounge-shorts'){
+  // Plain cotton lounge shorts from the reference, with a soft elastic waist
+  // and a small side-hem notch instead of denim pockets or a hard fly.
+  surface(g,p=>{p.moveTo(bx-half+3,180);p.quadraticCurveTo(bx,184,bx+half-3,180);p.quadraticCurveTo(bx+half-1,190,bx+half,202);p.lineTo(bx+half-3,200);p.lineTo(bx+half-2,207);p.quadraticCurveTo(bx+16,212,bx+3,208);p.lineTo(bx,200);p.lineTo(bx-3,208);p.quadraticCurveTo(bx-16,212,bx-half+2,207);p.lineTo(bx-half+3,200);p.lineTo(bx-half,202);p.quadraticCurveTo(bx-half+1,190,bx-half+3,180);},cotton(g,bx,half,c),shade(c,-.13));
+  a.line([[bx-half+4,184],[bx,187],[bx+half-4,184]],shade(c,-.12),1.2);
+  for(const sign of [-1,1]){g.beginPath();g.moveTo(bx+sign*4,206);g.quadraticCurveTo(bx+sign*16,210,bx+sign*(half-3),205);g.strokeStyle=shade(c,-.14);g.lineWidth=.85;g.stroke();a.line([[bx+sign*(half-5),191],[bx+sign*(half-10),195]],shade(c,-.07),.7);}
+  if(Math.abs(front)>.15)a.line([[bx,190],[bx,200]],shade(c,-.1),.6);
  }else if(['trousers','leggings','boyshorts'].includes(b.style)){
   surface(g,p=>{p.moveTo(bx-half+3,180);p.quadraticCurveTo(bx,183,bx+half-3,180);const end=b.style==='boyshorts'?half-1:(b.style==='leggings'?29:30)-16*profile;p.quadraticCurveTo(bx+half,193,bx+end,207);p.lineTo(bx-end,207);p.quadraticCurveTo(bx-half,193,bx-half+3,180);p.closePath();},material(g,bx,half,c));
   a.line([[bx-half+3,183],[bx,185],[bx+half-3,183]],shade(c,-.15),b.style==='leggings'?2:1.1);
@@ -73,7 +89,7 @@ export function paintClothedBody(a,image,angle,items,textures={},shoulders=null)
  }
  if(textures.bottom&&top.style!=='dress')g.drawImage(textures.bottom,0,178,160,31,-Math.sin(angle)*7,178,160,31);
  // Keep Stella's original face and pixie-cut texture clean at the neck join.
- g.drawImage(image,0,0,160,113,0,0,160,113);
+ g.drawImage(image,0,0,160,image.referenceHead?108:113,0,0,160,image.referenceHead?108:113);
  if(items.neck.style!=='none'&&front>.05){
   a.line([[cx-9,107],[cx-5,118],[cx+5,118],[cx+9,107]],items.neck.color,1.2);
   if(items.neck.style==='pearl')for(let i=-2;i<=2;i++)a.oval(cx+i*3.5,117+Math.cos(i)*2,1.8,1.8,'#fff8e6');
@@ -89,6 +105,7 @@ export function paintAccessories(a,rig,angle,items){
  const g=a.g,side=Math.sin(angle),front=Math.cos(angle),hx=80+side*5,hw=31-8*Math.abs(side);
  g.save();g.translate(rig.body.x,rig.body.y);if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);g.translate(-80,-196);
  const h=items.head;
+ g.translate(80,34);g.scale(.7,.7);g.translate(-80,0);
  if(h.style==='band'||h.style==='bow'){
   g.beginPath();g.moveTo(hx-hw,45);g.bezierCurveTo(hx-hw+2,9,hx+hw-2,9,hx+hw,45);g.strokeStyle=h.color;g.lineWidth=5;g.stroke();
   if(h.style==='bow'&&side<.55){const bx=80+29*front-12*side;a.shape([[bx,29],[bx-13,18],[bx-13,36]],h.color);a.shape([[bx,29],[bx+13,18],[bx+13,36]],h.color);a.oval(bx,29,4,4,'#e4d0ef');}

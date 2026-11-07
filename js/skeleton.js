@@ -3,7 +3,9 @@ import {gaitPose} from './gait.js';
 // Anatomical coordinates: x = left/right, y = down, z = forward.
 // Rotate the whole skeleton before projecting. Side views overlap the hips;
 // front views retain the depth of a step instead of turning knees sideways.
-export const RIG={upperLeg:56,lowerLeg:48,upperArm:46,forearm:38,hand:12,depth:.48};
+// The reference has longer legs relative to the torso than the earlier chibi
+// figure. Keep the same floor anchor; the pelvis rises with the longer chain.
+export const RIG={upperLeg:66,lowerLeg:58,upperArm:46,forearm:38,hand:12,depth:.48};
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 export function projectJoint(p,angle){
  const side=Math.sin(angle),front=Math.cos(angle),depth=p.z*front-p.x*side;
@@ -35,7 +37,7 @@ export function walkingRig(phase,amount=1,jog=false,angle=0){
  // Choose a pelvis height both ankles can reach. This raises the hip over
  // the support foot at midstance and lowers it at the longer contact poses.
  // A smooth maximum prevents a pop when support transfers between legs.
- const extension=103.9-1.7*blend;
+ const extension=RIG.upperLeg+RIG.lowerLeg-.1-1.7*blend;
  const heights=targets.map(p=>p.y-Math.sqrt(extension*extension-p.z*p.z-sway*sway));
  const hipY=(heights[0]+heights[1]+Math.hypot(heights[0]-heights[1],.35))/2;
  const legs=targets.map((target,i)=>{

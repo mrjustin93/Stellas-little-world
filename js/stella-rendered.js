@@ -1,3 +1,4 @@
+import {ReferenceHeads} from './stella-heads.js';
 import {restoreClothes,clothingItems} from './clothing.js';
 import {fabric,paintClothedBody,paintClothingLeg,paintAccessories,paintWristAccessory} from './clothing-art.js';
 import {OUTFITS,outfitId,tintClothes} from './wardrobe.js';
@@ -10,7 +11,7 @@ import {activityRig,paintHeldProp,paintActivityGround,paintActivityEffects} from
 import {paintLeg,paintArm} from './limbs.js';
 import {paintShoe} from './shoes.js';
 export class RenderedStella {
- constructor(){this.fallback=new StellaAtlas();this.ready=false;this.views=[];this.heads=[];this.bodies=[];this.outfits={};this.garments=new Map();this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
+ constructor(){this.fallback=new StellaAtlas();this.referenceHeads=new ReferenceHeads();this.ready=false;this.views=[];this.heads=[];this.bodies=[];this.outfits={};this.garments=new Map();this.steps=32;this.keyViews=16;this.image=new Image();this.image.onerror=()=>{this.ready=false;};this.image.onload=()=>{this.prepare();};
   fetch(new URL('../assets/characters/stella-rendered-v06.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Missing Stella metadata');return r.json();}).then(data=>{if(data.frames?.length!==16)throw Error('Invalid Stella metadata');this.metadata=data;this.image.src=new URL('../assets/characters/stella-rendered-v06.png',import.meta.url).href;}).catch(()=>{this.ready=false;});
  }
  prepare(){try{
@@ -91,7 +92,7 @@ export class RenderedStella {
   if(rig.bodyAxis)g.transform(1,0,rig.bodyAxis.x,rig.bodyAxis.y,0,0);
   if(items){
    const axis=rig.bodyAxis||{x:0,y:1},shoulders=fittedArms.map(arm=>{const y=(arm.shoulder.y-rig.body.y)/axis.y;return {x:80+arm.shoulder.x-rig.body.x-axis.x*y,y:196+y};});
-   g.translate(-80,-196);paintClothedBody(a,this.heads[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')},shoulders);
+   g.translate(-80,-196);paintClothedBody(a,this.referenceHeads.ready?this.referenceHeads.views[index]:this.heads[index],angle,items,{top:this.garmentFor(index,items.top,'top'),bottom:this.garmentFor(index,items.bottom,'bottom')},shoulders);
   }else g.drawImage(this.bodyFor(index,p.outfit),-80,-196);g.restore();
   if(Math.cos(angle)>=0)paintHeldProp(a,rig,activity,carrying&&!pose,angle);
   for(const arm of arms)if(!behind(arm)){paintArm(a,arm,palette,sleeve);if(items)paintWristAccessory(a,arm,items.wrist,arm.index);}
@@ -111,5 +112,5 @@ export class RenderedStella {
   const rig=activityRig(p.gait,0,isJogging(p.speed),angle,activity,p.carryingLuna===true);
   paintActivityEffects(a,p,rig,activity,angle,activity.kind==='water'&&Math.cos(angle)<0?'splash':'all');
  }
- portrait(canvas){if(!this.ready)return;const g=canvas.getContext('2d');g.clearRect(0,0,128,128);const gradient=g.createLinearGradient(0,0,128,128);gradient.addColorStop(0,'#fae4d2');gradient.addColorStop(1,'#e9b9cc');g.fillStyle=gradient;g.fillRect(0,0,128,128);g.drawImage(this.views[0],28,4,104,105,0,0,128,128);}
+ portrait(canvas){if(!this.ready)return;const g=canvas.getContext('2d');g.clearRect(0,0,128,128);const gradient=g.createLinearGradient(0,0,128,128);gradient.addColorStop(0,'#fae4d2');gradient.addColorStop(1,'#e9b9cc');g.fillStyle=gradient;g.fillRect(0,0,128,128);if(this.referenceHeads.ready)g.drawImage(this.referenceHeads.views[0],36,30,88,72,0,0,128,128);else g.drawImage(this.views[0],28,4,104,105,0,0,128,128);}
 }
