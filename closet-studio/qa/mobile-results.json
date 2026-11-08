@@ -1,0 +1,34 @@
+[
+  {
+    "size": "390x844",
+    "webgl": true,
+    "controls_44px": true,
+    "no_page_overflow": true,
+    "pose_and_palette_taps": true,
+    "errors": []
+  },
+  {
+    "size": "375x667",
+    "webgl": true,
+    "controls_44px": true,
+    "no_page_overflow": true,
+    "pose_and_palette_taps": true,
+    "errors": []
+  },
+  {
+    "size": "360x740",
+    "webgl": true,
+    "controls_44px": true,
+    "no_page_overflow": true,
+    "pose_and_palette_taps": true,
+    "errors": []
+  },
+  {
+    "size": "844x390",
+    "webgl": true,
+    "controls_44px": true,
+    "no_page_overflow": true,
+    "pose_and_palette_taps": true,
+    "errors": []
+  }
+]
